@@ -1,6 +1,6 @@
 # RunRabbitRun
 
-TODO: Write a gem description
+git@github.com:fragallia/run_rabbit_run.git
 
 ## Installation
 
