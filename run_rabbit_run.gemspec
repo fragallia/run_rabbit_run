@@ -2,7 +2,7 @@
 $:.push File.expand_path("../lib", __FILE__)
 
 # include gem version
-redis 'run_rabbit_run/version'
+require 'run_rabbit_run/version'
 
 Gem::Specification.new do |gem|
   gem.authors       = ["Arturs Kreipans"]
@@ -23,4 +23,5 @@ Gem::Specification.new do |gem|
   gem.add_dependency "bunny"
   gem.add_dependency "amqp"
   gem.add_dependency "redis"
+  gem.add_dependency "daemons"
 end
