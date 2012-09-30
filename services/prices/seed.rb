@@ -79,7 +79,7 @@ def stay
 end
 
 @coll.remove
-1000000.times do |i|
+100000.times do |i|
   puts i if i % 10000 == 0
   @coll.insert(doc(i+1))
 end

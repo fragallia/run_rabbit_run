@@ -18,3 +18,4 @@ tmp
 .rvmrc
 *.swp
 dump.rdb
+*.pid

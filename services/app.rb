@@ -7,8 +7,9 @@ request = RunRabbitRun::Request.new(
   {
     :queue_name => 'service.router',
     :payload => {
-      :from => Date.new(2013,3,1).to_time,
-      :to => Date.new(2013,3,11).to_time
+      :from => 20131201,
+      :to => 20131211,
+      #:location => 1000
     },
     :timeout => 5,
     :log_time => true

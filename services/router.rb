@@ -3,8 +3,7 @@ $:.push File.expand_path("../../lib", __FILE__)
 require 'rubygems'
 require 'run_rabbit_run'
 
-queue_name                    = "service.router"
-availability_price_queue_name = "service.availability.price"
+queue_name = "service.router"
 
 options = {
   :auto_delete => false,
@@ -12,25 +11,27 @@ options = {
 }
 
 publisher = RunRabbitRun::Publishers::Async.new
-consumer  = RunRabbitRun::Consumer.new
 
+consumer  = RunRabbitRun::Consumer.new
 consumer.subscribe(queue_name, options) do | header, payload |
-  ids = []
-  messages_count = 20
-  messages_count.times do |i|
-    ids << Random.rand(1000000) + 1
+  if payload['from'] && payload['to']
+    if payload['attributes']
+      payload['request']   = { :type => :avail, :limit => 5000 }
+    else
+      payload['request']   = { :type => :avail_attr, :limit => 1000 }
+      #TODO make call to attribution service
+    end
+
+    availability_queue ||= RunRabbitRun::Consumer.channel.queue('service.availabilities', :auto_delete => false)
+
+    publisher.send_message(availability_queue, payload)
+  else
+    payload['response']  = {:error => 'Parameters does not match to any search functionality'}
+    assembler_queue    ||= RunRabbitRun::Consumer.channel.queue('service.assembler', :auto_delete => false)
+
+    publisher.send_message(assembler_queue, payload)
   end
 
-  request = {
-    :uuid => payload['uuid'],
-    :ids => ids,
-    :from => payload['from'],
-    :to => payload['to']
-  }
-  
-  availability_price_queue ||= RunRabbitRun::Consumer.channel.queue(availability_price_queue_name, :auto_delete => false)
-
-  publisher.send_message(availability_price_queue, request)
 end
 
 consumer.run
