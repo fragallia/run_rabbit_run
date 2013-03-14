@@ -18,12 +18,8 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = RunRabbitRun::VERSION
 
-  gem.add_dependency "mongo"
+  gem.add_dependency "rake"
   gem.add_dependency "bson_ext"
   gem.add_dependency "bunny"
   gem.add_dependency "amqp"
-  gem.add_dependency "redis"
-  gem.add_dependency 'activerecord'
-  gem.add_dependency 'mysql'
-  gem.add_dependency "daemons"
 end

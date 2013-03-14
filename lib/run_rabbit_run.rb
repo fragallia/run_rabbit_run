@@ -1,27 +1,30 @@
 require "run_rabbit_run/version"
-require 'date'
-require 'redis'
+
+require 'bunny'
+require 'amqp'
+require 'bson'
 
 module RunRabbitRun
+  require 'run_rabbit_run/publisher'
+  require 'run_rabbit_run/queue'
+  require 'run_rabbit_run/master'
+  require 'run_rabbit_run/config'
 
-  require 'run_rabbit_run/collector'
-  require 'run_rabbit_run/request'
-  require 'run_rabbit_run/response'
-  require 'run_rabbit_run/consumer'
+  require 'run_rabbit_run/base'
+  include RunRabbitRun::Base
 
-  module Publishers
-    require 'run_rabbit_run/publishers/sync'
-    require 'run_rabbit_run/publishers/async'
+  extend self
+
+  SIGNAL_EXIT   = 'QUIT'
+  SIGNAL_RELOAD = 'USR1'
+  SIGNAL_KILL   = 'KILL'
+
+  def load_config(application_path)
+    @@config = RunRabbitRun::Config.load(application_path)
   end
 
-  class << self
-    def collector
-      @collector ||= RunRabbitRun::Collector
-    end
-
-    def results_store
-      @results_store ||= Redis.new
-    end
-
+  def config
+    @@config
   end
 end
+
