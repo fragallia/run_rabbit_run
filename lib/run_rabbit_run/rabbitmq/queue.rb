@@ -2,10 +2,10 @@ module RunRabbitRun
   module Rabbitmq
     class Queue
       attr_accessor :name, :options, :queue
-      def initialize(name, options = {})
-        @name = name
+      def initialize(queue, options = {})
+        @name = queue.name
         @options = options
-        @queue = RunRabbitRun::Rabbitmq.channel.queue(@name, @options)
+        @queue = queue
       end
 
       def subscribe &block

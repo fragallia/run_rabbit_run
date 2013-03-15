@@ -2,15 +2,28 @@ module RunRabbitRun
   require 'run_rabbit_run/worker'
 
   class Workers
-    attr_accessor :options
-    def initialize(options = {})
-      @options = options
+    def initialize
       @workers = {}
     end
 
+    def status worker, status
+      case status
+      when :process_quit
+        @workers.delete(worker)
+      when :process_started
+        @workers[worker].status = :ready
+      when :message_received
+        @workers[worker].status = :busy
+      when :message_processed
+        @workers[worker].status = :ready
+      else
+        @workers[worker].status = :unknown
+      end
+    end
+
     def start
-      options.each do | name, worker_options |
-        worker = RunRabbitRun::Worker.new(name, worker_options)
+      RunRabbitRun.config[:run].each do | name |
+        worker = RunRabbitRun::Worker.new(name)
         worker.run
 
         @workers[name] = worker
@@ -36,10 +49,16 @@ module RunRabbitRun
       @workers.each { | key, worker | worker.kill }
     end
 
-    def reload(options)
-      @options = options
+    def reload
+      RunRabbitRun.load_config( RunRabbitRun.config[:application_path] )
       #TODO run new workers
       #TODO stop old workers
+    end
+
+    def print_status
+      @workers.each do | key, worker |
+        RunRabbitRun.logger.info "#{worker.name} status : #{worker.status}"
+      end
     end
   end
 end

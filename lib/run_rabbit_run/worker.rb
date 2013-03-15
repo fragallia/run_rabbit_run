@@ -2,13 +2,19 @@ require 'run_rabbit_run/rabbitmq'
 
 module RunRabbitRun
   class Worker
-    attr_accessor :name, :options, :pid
-    def initialize(name, options)
-      @name, @options = name, options
+    attr_accessor :name, :pid, :status
+    def initialize(name)
+      @name = name
+
+      @status = :unknown
     end
 
     def display_name
-      @options[:name] || @name
+      options[:name] || @name
+    end
+
+    def options
+      RunRabbitRun.config[:workers][name]
     end
 
     def run
@@ -24,10 +30,15 @@ module RunRabbitRun
         Signal.trap(RunRabbitRun::SIGNAL_EXIT)   { signals << RunRabbitRun::SIGNAL_EXIT   }
 
         EventMachine.run do
-          RunRabbitRun::Rabbitmq.instance_eval File.read(options[:path]), options[:path]
+          rabbitmq = RunRabbitRun::Rabbitmq::Base.new(@name)
+          rabbitmq.system_message(:master, :process_started)
+          rabbitmq.instance_eval File.read(options[:path]), options[:path]
 
           EventMachine::add_periodic_timer( 0.5 ) do
-            RunRabbitRun::Rabbitmq.stop if signals.include?( RunRabbitRun::SIGNAL_EXIT )
+            if signals.include?( RunRabbitRun::SIGNAL_EXIT )
+              rabbitmq.system_message(:master, :process_quit)
+              rabbitmq.stop
+            end
           end
         end
 

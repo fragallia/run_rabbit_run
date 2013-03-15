@@ -1,5 +1,5 @@
-output = queue.new('output2')
-input  = queue.new('input2')
+output = channel.queue('output2', auto_delete: false)
+input  = channel.queue('input2', auto_delete: false)
 
 send(output, {some: 'data'})
 

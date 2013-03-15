@@ -17,11 +17,11 @@ module RunRabbitRun
       end
 
       def send(queue, data, options = {})
-        exchange.publish(BSON.serialize(data).to_s, :key => queue.name)
+        exchange.publish(JSON.generate(data), :key => queue.name)
       end
 
       def stop
-        bunny.stop
+        bunny.stop if @bunny
       end
     end
   end
