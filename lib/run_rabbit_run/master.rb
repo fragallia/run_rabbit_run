@@ -38,7 +38,7 @@ module RunRabbitRun
         
         workers.stop
 
-        puts '[DONE] exit master process'
+        RunRabbitRun.logger.info '[DONE] exit master process'
       end
 
       Process.detach(pid)
@@ -48,12 +48,12 @@ module RunRabbitRun
 
     def stop
       if self.running?
-        puts 'send exit signal to master process'
+        RunRabbitRun.logger.info 'send exit signal to master process'
         Process.kill(RunRabbitRun::SIGNAL_EXIT, Pid.pid)
 
         Pid.remove
       else
-        puts "[ERROR] no process running"
+        RunRabbitRun.logger.error "no process running"
       end
     end
 
@@ -61,7 +61,7 @@ module RunRabbitRun
       if self.running?
         Process.kill(RunRabbitRun::SIGNAL_RELOAD, Pid.pid)
       else
-        puts "[ERROR] no process running"
+        RunRabbitRun.logger.error "no process running"
       end
     end
 
@@ -74,7 +74,7 @@ module RunRabbitRun
         return true
       rescue Errno::ESRCH
       rescue Exception => e
-        puts "[ERROR] #{e}, #{e.backtrace.join("\n")}"
+        RunRabbitRun.logger.error "#{e}, #{e.backtrace.join("\n")}"
       end
 
       return false

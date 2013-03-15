@@ -1,3 +1,5 @@
+require 'run_rabbit_run/rabbitmq'
+
 module RunRabbitRun
   class Worker
     attr_accessor :name, :options, :pid
@@ -13,14 +15,23 @@ module RunRabbitRun
 
       raise "The worker <#{display_name}> is already running" if self.running?
 
-      puts "[INFO] [RunRabbitRun] worker <#{display_name}> starting"
+      RunRabbitRun.logger.info "[#{display_name}] worker starting"
 
       @pid = fork do
         $0 = "[ruby] [RunRabbitRun] [#{display_name}] worker process"
+        signals = []
 
-        load options[:path]
+        Signal.trap(RunRabbitRun::SIGNAL_EXIT)   { signals << RunRabbitRun::SIGNAL_EXIT   }
 
-        puts "[ruby] [RunRabbitRun] [#{display_name}] worker process finished"
+        EventMachine.run do
+          RunRabbitRun::Rabbitmq.instance_eval File.read(options[:path]), options[:path]
+
+          EventMachine::add_periodic_timer( 0.5 ) do
+            RunRabbitRun::Rabbitmq.stop if signals.include?( RunRabbitRun::SIGNAL_EXIT )
+          end
+        end
+
+        RunRabbitRun.logger.info "[#{display_name}] worker process finished"
       end
 
       Process.detach(@pid)
@@ -28,23 +39,23 @@ module RunRabbitRun
 
     def stop
       if running?
-        puts "[INFO] send exit signal to worker <#{display_name}> process"
+        RunRabbitRun.logger.info "[#{display_name}] send exit signal to worker process"
         Process.kill(RunRabbitRun::SIGNAL_EXIT, pid)
 
         Pid.remove
       else
-        puts "[ERROR] no process running"
+        RunRabbitRun.logger.debug "can't stop process, not running"
       end
     end
 
     def kill
       if self.running?
-        puts "[INFO] kill worker <#{display_name}> process"
+        RunRabbitRun.logger.info "[#{display_name}] kill worker process"
         Process.kill(RunRabbitRun::SIGNAL_KILL, pid)
 
         Pid.remove
       else
-        puts "[ERROR] no process running"
+        RunRabbitRun.logger.debug "can't kill process, not running"
       end
     end
 
@@ -57,7 +68,7 @@ module RunRabbitRun
         return true
       rescue Errno::ESRCH
       rescue Exception => e
-        puts "[ERROR] #{e}, #{e.backtrace.join("\n")}"
+        RunRabbitRun.logger.error "#{e}, #{e.backtrace.join("\n")}"
       end
 
       return false

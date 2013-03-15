@@ -18,14 +18,18 @@ module RunRabbitRun
     end
 
     def stop
-      puts 'stop workers'
+      RunRabbitRun.logger.info 'stop workers'
       # try to stop gracefully 
       @workers.each { | key, worker | worker.stop }
-      
-      # wait for 5 seconds for processes
-      sleep 5
+     
+      sleep 1 
 
-      self.kill
+      if @workers.find { | key, worker | worker.running? }
+        sleep 4
+        # kill workers which are still running
+        @workers.each { | key, worker | worker.kill if worker.running? }
+      end
+
     end
 
     def kill

@@ -9,15 +9,16 @@ module RunRabbitRun
     def load(application_path)
       @options = {
         application_path: application_path,
-        pid:              "#{application_path}/tmp/pids/run_rabbit_run.pid"
+        pid:              "#{application_path}/tmp/pids/run_rabbit_run.pid",
+        environment:      (ENV['RAKE_ENV'] || ENV['RAILS_ENV'] || 'development'),
+        log:              "log/run_rabbit_run.log",
       }
 
       config_file = "#{application_path}/config/rrr.rb"
       instance_eval File.read(config_file), config_file
 
-      environment = ENV['RAKE_ENV'] || ENV['RAILS_ENV'] || 'development'
 
-      rake_environment_file = "#{application_path}/config/rrr/#{environment}.rb"
+      rake_environment_file = "#{application_path}/config/rrr/#{@options[:environment]}.rb"
       instance_eval File.read(rake_environment_file), rake_environment_file
 
       options
@@ -25,6 +26,10 @@ module RunRabbitRun
 
     def options
       @options ||= {}  
+    end
+
+    def log value
+      options[:log] = File.expand_path(value)
     end
 
     def pid value

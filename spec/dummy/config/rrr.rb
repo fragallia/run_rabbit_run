@@ -1,9 +1,8 @@
 require 'run_rabbit_run'
 
-#TODO stderr_path "log/run_rabbit_run.stderr.log"
-#TODO stdout_path "log/run_rabbit_run.stdout.log"
 #TODO working_directory '/path/to/working/directory'
 
+log "log/run_rabbit_run.log"
 pid "tmp/pids/run_rabbit_run.pid"
 
 worker :worker1, 'workers/worker_name_1.rb' #TODO , process_count_min: 0, process_count_max: 6
