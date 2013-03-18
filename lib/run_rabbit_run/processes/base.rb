@@ -37,7 +37,10 @@ module RunRabbitRun
 
                 call_callback :before_reload
               end
-              call_callback :before_exit if signals.include?( RunRabbitRun::SIGNAL_EXIT )
+              if signals.include?( RunRabbitRun::SIGNAL_EXIT )
+                call_callback :before_exit
+                EventMachine.stop { exit }
+              end
             end
           end
 

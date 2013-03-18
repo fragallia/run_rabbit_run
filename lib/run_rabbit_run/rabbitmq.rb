@@ -10,17 +10,17 @@ module RunRabbitRun
 
       def subscribe(queue, options = {}, &block)
         opts = options.dup
-        time_loging   = opts.delete(:time_loging) || false
+        time_logging   = opts.delete(:time_logging) || false
         log_to_master = opts.delete(:log_to_master) || true
 
         queue.subscribe do | header, payload |
-          RunRabbitRun.logger.info "[#{queue.name}] [#{Time.now.to_f}] started" if time_loging
+          RunRabbitRun.logger.info "[#{queue.name}] [#{Time.now.to_f}] started" if time_logging
           system_message(:master, :message_received, { queue: queue.name } ) if log_to_master
 
           instance_exec(header, JSON.parse(payload), &block)
 
           system_message(:master, :message_processed, { queue: queue.name } ) if log_to_master
-          RunRabbitRun.logger.info "[#{queue.name}] [#{Time.now.to_f}] finished" if time_loging
+          RunRabbitRun.logger.info "[#{queue.name}] [#{Time.now.to_f}] finished" if time_logging
         end
       end
 
