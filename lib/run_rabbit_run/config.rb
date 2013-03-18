@@ -14,12 +14,8 @@ module RunRabbitRun
         log:              "log/run_rabbit_run.log",
       }
 
-      config_file = "#{application_path}/config/rrr.rb"
-      instance_eval File.read(config_file), config_file
-
-
-      rake_environment_file = "#{application_path}/config/rrr/#{@options[:environment]}.rb"
-      instance_eval File.read(rake_environment_file), rake_environment_file
+      load_from_file "#{application_path}/config/rrr.rb"
+      load_from_file "#{application_path}/config/rrr/#{@options[:environment]}.rb"
 
       options
     end
@@ -47,5 +43,12 @@ module RunRabbitRun
     def run *workers
       options[:run] = workers 
     end
+
+  private
+
+    def load_from_file(path)
+      instance_eval File.read(path), path
+    end
+
   end
 end

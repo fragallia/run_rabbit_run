@@ -1,11 +1,11 @@
 module RunRabbitRun
   module Rabbitmq
     require 'run_rabbit_run/rabbitmq/publisher'
-    require 'run_rabbit_run/rabbitmq/queue'
 
     class Base
       def initialize(name)
         @name = name
+        system_message(:master, :process_started) unless name == :master
       end
 
       def subscribe(queue, options = {}, &block)
@@ -59,6 +59,8 @@ module RunRabbitRun
       end
 
       def stop
+        system_message(:master, :process_quit) unless @name == :master
+
         publisher.stop
 
         connection.close {

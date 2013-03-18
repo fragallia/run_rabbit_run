@@ -42,7 +42,6 @@ module RunRabbitRun
         # kill workers which are still running
         @workers.each { | key, worker | worker.kill if worker.running? }
       end
-
     end
 
     def kill
@@ -55,10 +54,5 @@ module RunRabbitRun
       #TODO stop old workers
     end
 
-    def print_status
-      @workers.each do | key, worker |
-        RunRabbitRun.logger.info "#{worker.name} status : #{worker.status}"
-      end
-    end
   end
 end

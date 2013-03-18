@@ -1,12 +1,22 @@
 module RunRabbitRun
   require 'run_rabbit_run/workers'
+  require 'run_rabbit_run/pid'
   require 'run_rabbit_run/processes/master'
 
   module Master
     extend self
+
+    def master_process
+      @@master_process ||= begin
+        master = RunRabbitRun::Processes::Master.new
+        master.pid = Pid.pid
+       
+        master
+      end
+    end
     
     def start
-      RunRabbitRun::Processes::Master.start do
+      master_process.start do
         workers = RunRabbitRun::Workers.new
         workers.start
 
@@ -23,14 +33,17 @@ module RunRabbitRun
         end
 
       end
+
+      Pid.save(master_process.pid)
     end
 
     def stop
-      RunRabbitRun::Processes::Master.stop
+      master_process.stop
+      Pid.remove
     end
 
     def reload
-      RunRabbitRun::Processes::Master.reload
+      master_process.reload
     end
   end
 end
