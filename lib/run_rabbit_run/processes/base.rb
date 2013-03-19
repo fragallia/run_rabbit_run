@@ -39,9 +39,9 @@ module RunRabbitRun
               end
               if signals.include?( RunRabbitRun::SIGNAL_EXIT )
                 call_callback :before_exit
-                #?! there could be amqp stop in process
-                sleep 1
-                EventMachine.stop { exit }
+                EventMachine::add_timer( 10 ) do
+                  EventMachine.stop { exit }
+                end
               end
             end
           end
