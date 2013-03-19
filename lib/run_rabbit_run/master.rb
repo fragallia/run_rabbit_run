@@ -1,8 +1,9 @@
-module RunRabbitRun
-  require 'run_rabbit_run/workers'
-  require 'run_rabbit_run/pid'
-  require 'run_rabbit_run/processes/master'
+require 'run_rabbit_run/workers'
+require 'run_rabbit_run/rabbitmq/system_messages'
+require 'run_rabbit_run/pid'
+require 'run_rabbit_run/processes/master'
 
+module RunRabbitRun
   module Master
     extend self
 
@@ -20,8 +21,12 @@ module RunRabbitRun
         workers = RunRabbitRun::Workers.new
         workers.start
 
-        add_periodic_timer 1 do
-          workers.check
+        add_periodic_timer 2 do
+          begin
+            workers.check
+          rescue => e
+            RunRabbitRun.logger.error e.message
+          end
         end
 
         before_exit do
@@ -33,7 +38,7 @@ module RunRabbitRun
         end
 
         on_system_message_received do | from, message, data |
-          workers.status(from, message)
+          RunRabbitRun.logger.info "[master] got message [#{message}] from [#{from}]"
         end
 
       end

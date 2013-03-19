@@ -5,8 +5,12 @@ module RunRabbitRun
       
       def initialize(path, options = {})
         @options = {
-          path: File.expand_path(path),
+          path:          File.expand_path(path),
+          log_to_master: true,
+          processes:     1,
         }.merge(options)
+
+        @options[:processes] = 1 unless @options[:processes].to_i > 0
 
         raise "File not exists: #{@options[:path]}" unless File.exists?(@options[:path])
       end
@@ -17,6 +21,14 @@ module RunRabbitRun
      
       def name value
         options[:name] = value
+      end
+
+      def processes value
+        options[:processes] = value > 0 ? value : 1
+      end
+
+      def log_to_master value
+        options[:log_to_master] = !!value
       end
 
     end

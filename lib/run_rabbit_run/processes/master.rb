@@ -15,9 +15,11 @@ module RunRabbitRun
         super do
           instance_exec &block
 
-          rabbitmq = RunRabbitRun::Rabbitmq::Base.new(:master)
-          rabbitmq.subscribe_to_system_messages "master.#" do | headers, payload |
-            call_callback :on_system_message_received, payload["worker"].to_sym, payload["message"].to_sym, payload["data"]
+          rabbitmq = RunRabbitRun::Rabbitmq::Base.new
+          system_messages = RunRabbitRun::Rabbitmq::SystemMessages.new(rabbitmq)
+
+          system_messages.subscribe "master.#" do | headers, payload |
+            call_callback :on_system_message_received, payload["from"].to_sym, payload["message"].to_sym, payload["data"]
           end
 
           before_exit do

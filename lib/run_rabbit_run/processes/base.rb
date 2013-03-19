@@ -52,6 +52,10 @@ module RunRabbitRun
         Process.detach(@pid)
       end
 
+      def guid
+        "#{@name}-#{@pid}"
+      end
+
       def add_periodic_timer seconds, &block
         EventMachine::add_periodic_timer( seconds ) do
           block.call
