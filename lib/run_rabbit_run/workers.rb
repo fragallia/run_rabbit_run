@@ -21,6 +21,12 @@ module RunRabbitRun
       end
     end
 
+    def check
+      @workers.each do | name, worker |
+        worker.run unless worker.running?
+      end
+    end
+
     def start
       RunRabbitRun.config[:run].each do | name |
         worker = RunRabbitRun::Worker.new(name)

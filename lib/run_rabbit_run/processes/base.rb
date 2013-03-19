@@ -39,6 +39,8 @@ module RunRabbitRun
               end
               if signals.include?( RunRabbitRun::SIGNAL_EXIT )
                 call_callback :before_exit
+                #?! there could be amqp stop in process
+                sleep 1
                 EventMachine.stop { exit }
               end
             end
@@ -48,6 +50,12 @@ module RunRabbitRun
         end
 
         Process.detach(@pid)
+      end
+
+      def add_periodic_timer seconds, &block
+        EventMachine::add_periodic_timer( seconds ) do
+          block.call
+        end
       end
 
       def stop

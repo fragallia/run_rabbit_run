@@ -20,6 +20,10 @@ module RunRabbitRun
         workers = RunRabbitRun::Workers.new
         workers.start
 
+        add_periodic_timer 1 do
+          workers.check
+        end
+
         before_exit do
           workers.stop
         end
