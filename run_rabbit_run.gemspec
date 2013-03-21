@@ -7,8 +7,8 @@ require 'run_rabbit_run/version'
 Gem::Specification.new do |gem|
   gem.authors       = ["Arturs Kreipans"]
   gem.email         = ["arturs.kreipans@gmail.com"]
-  gem.description   = %q{TODO: Write a gem description}
-  gem.summary       = %q{TODO: Write a gem summary}
+  gem.description   = %q{RunRabbitRun gem lets to run and manage multiple ruby processes for RabbitMQ}
+  gem.summary       = %q{RunRabbitRun gem lets to run and manage multiple ruby processes for RabbitMQ}
   gem.homepage      = ""
 
   gem.files         = `git ls-files`.split($\)
@@ -23,4 +23,5 @@ Gem::Specification.new do |gem|
   gem.add_dependency "amqp"
 
   gem.add_development_dependency 'pry'
+  gem.add_development_dependency 'pry-remote'
 end
