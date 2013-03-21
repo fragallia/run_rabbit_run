@@ -5,10 +5,6 @@ module RunRabbitRun
     class Base
       include RunRabbitRun::Callbacks
       
-      def initialize
-        channel.on_error(&method(:handle_channel_exception))
-      end
-
       define_callback :on_message_received
       define_callback :on_message_processed
 
@@ -49,13 +45,6 @@ module RunRabbitRun
         }
       end
 
-    private
-
-      def handle_channel_exception(channel, channel_close)
-        RunRabbitRun.logger.error "Oops... a channel-level exception: code = #{channel_close.reply_code}, message = #{channel_close.reply_text}"
-
-        stop
-      end # handle_channel_exception
     end
   end
 end

@@ -31,7 +31,7 @@ module RunRabbitRun
     end
 
     def remove name
-      guid = @workers[name.to_sym].keys.sort.last
+      guid = @workers[name.to_sym].keys.sort.first
       worker = @workers[name.to_sym][guid]
 
       worker.stop
@@ -69,16 +69,22 @@ module RunRabbitRun
           end
         end
       end
+
+      @workers = {}
     end
 
     def kill
       @workers.each { | name, workers | workers.each { | guid, worker | worker.kill if worker.running? } }
+
+      @workers = {}
     end
 
     def reload
+      # reload the config file
       RunRabbitRun.load_config( RunRabbitRun.config[:application_path] )
-      #TODO run new workers
-      #TODO stop old workers
+
+      self.stop 
+      self.start
     end
 
   private
@@ -95,7 +101,11 @@ module RunRabbitRun
     end
 
     def generate_guid name
-      "#{name}-#{((@workers[name] and @workers[name].keys.size) || 0) + 1}"
+      last_guid = @workers[name].keys.sort.last if @workers[name]
+
+      index = (last_guid ? last_guid.split('-').last.to_i : 0) + 1
+
+      "#{name}-#{index}"
     end
 
   end
