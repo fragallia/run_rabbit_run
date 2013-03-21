@@ -8,7 +8,7 @@ module RunRabbitRun
       define_callback :on_system_message_received
 
       def initialize name = :master
-        @name = name
+        super name
       end
 
       def start &block
@@ -25,7 +25,6 @@ module RunRabbitRun
           before_exit do
             rabbitmq.stop
           end
-
         end
       end
     end

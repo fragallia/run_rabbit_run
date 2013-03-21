@@ -2,10 +2,12 @@ require 'run_rabbit_run/callbacks'
 
 module RunRabbitRun
   module Rabbitmq
-    require 'run_rabbit_run/rabbitmq/publisher'
-
     class Base
       include RunRabbitRun::Callbacks
+      
+      def initialize
+        channel.on_error(&method(:handle_channel_exception))
+      end
 
       define_callback :on_message_received
       define_callback :on_message_processed
@@ -25,25 +27,23 @@ module RunRabbitRun
         end
       end
 
-      def send(queue, data)
-        publisher.send(queue, data)
+      def publish(queue, data)
+        exchange.publish JSON.generate(data), :routing_key => queue.name
       end
 
       def connection
-        @@connection ||= AMQP.connect(:host => '127.0.0.1')
+        @connection ||= AMQP.connect(host: '127.0.0.1', username: "guest", password: "guest")
       end
 
       def channel
-        @@channel    ||= AMQP::Channel.new(connection)
+        @channel    ||= AMQP::Channel.new(connection, AMQP::Channel.next_channel_id, auto_recovery: true)
       end
 
-      def publisher
-        @@publisher  ||= RunRabbitRun::Rabbitmq::Publisher.new
+      def exchange
+        @exchange    ||= channel.direct('')
       end
 
       def stop
-        publisher.stop
-
         connection.close {
           EventMachine.stop { exit }
         }
@@ -54,7 +54,7 @@ module RunRabbitRun
       def handle_channel_exception(channel, channel_close)
         RunRabbitRun.logger.error "Oops... a channel-level exception: code = #{channel_close.reply_code}, message = #{channel_close.reply_text}"
 
-        self.stop
+        stop
       end # handle_channel_exception
     end
   end

@@ -7,13 +7,12 @@ module RunRabbitRun
 
       def subscribe routing_key, &block
         system_queue.bind(system_exchange, routing_key: "profile.#{RunRabbitRun.config[:environment]}.#{routing_key}")
-
         system_queue.subscribe do | headers, payload |
           block.call(headers, JSON.parse(payload))
         end
       end
 
-      def send from, target, message, data = {}
+      def publish from, target, message, data = {}
         system_exchange.publish(
           JSON.generate({
             from: from,
@@ -25,12 +24,18 @@ module RunRabbitRun
 
     private
 
+      def handle_channel_exception(channel, channel_close)
+        RunRabbitRun.logger.error "Oops... a channel-level exception: code = #{channel_close.reply_code}, message = #{channel_close.reply_text}"
+
+        @rabbitmq.stop
+      end # handle_channel_exception
+
       def system_queue
-        @@system_queue ||= @rabbitmq.channel.queue("profile.#{RunRabbitRun.config[:environment]}")
+        @system_queue ||= @rabbitmq.channel.queue("profile.#{RunRabbitRun.config[:environment]}", auto_delete: false)
       end
 
       def system_exchange
-        @@system_exchange ||= @rabbitmq.channel.topic("runrabbitrun.system", durable: true)
+        @system_exchange ||= @rabbitmq.channel.topic("runrabbitrun.system", durable: true)
       end
 
     end

@@ -11,7 +11,7 @@ worker :worker2, 'workers/worker_name_2.rb' do
   name 'Worker name 2'
   log_to_master true
 
-  processes 2
+  processes 1
 
   #TODO processes_max 7
 end

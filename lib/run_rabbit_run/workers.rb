@@ -6,16 +6,44 @@ module RunRabbitRun
       @workers = {}
     end
 
+    def worker(guid)
+      @workers.each do | name, workers |
+        workers.each do | current_guid, worker |
+          return worker if current_guid == guid
+        end
+      end
+
+      nil
+    end
+
     def check
       @workers.each do | name, workers |
-        options = RunRabbitRun.config[:workers][name]
-
         workers.each do | guid, worker |
-          worker.run options unless worker.running?
+          worker.run unless worker.running?
         end
-        diff = workers.size - RunRabbitRun.config[:workers][name][:processes]
-        diff.times{ run_new_worker name }
+        diff = RunRabbitRun.config[:workers][name][:processes] - workers.size
+        diff.times{ run_new_worker name } if diff > 0
       end
+    end
+
+    def add name
+      run_new_worker name
+    end
+
+    def remove name
+      guid = @workers[name.to_sym].keys.sort.last
+      worker = @workers[name.to_sym][guid]
+
+      worker.stop
+
+      sleep 1
+
+      if worker.running?
+        sleep 4
+        worker.kill if worker.running?
+      end
+
+      @workers[name.to_sym].delete(guid)
     end
 
     def start
@@ -27,7 +55,6 @@ module RunRabbitRun
     end
 
     def stop
-      RunRabbitRun.logger.info 'stop workers'
       # try to stop gracefully 
       @workers.each { | name, workers | workers.each { | guid, worker | worker.stop } }
      
@@ -37,7 +64,7 @@ module RunRabbitRun
         workers.each do | guid, worker | 
           if worker.running?
             sleep 4
-            kill # kill workers which are still running
+            self.kill # kill workers which are still running
             return
           end
         end
@@ -57,14 +84,14 @@ module RunRabbitRun
   private
 
     def run_new_worker name
-      guid    = generate_guid(name)
-      options = RunRabbitRun.config[:workers][name]
-
-      worker = RunRabbitRun::Worker.new(guid)
-      worker.run options
+      name   = name.to_sym
+      guid   = generate_guid(name)
+      worker = RunRabbitRun::Worker.new(name, guid)
 
       @workers[name] ||= {}
       @workers[name][guid] = worker
+
+      worker.run
     end
 
     def generate_guid name

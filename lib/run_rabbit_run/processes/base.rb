@@ -1,4 +1,5 @@
 require 'run_rabbit_run/callbacks'
+require 'run_rabbit_run/processes/signals'
 
 module RunRabbitRun
   module Processes
@@ -15,14 +16,16 @@ module RunRabbitRun
       end
 
       def start &block
-        raise "The process [#{@name}] is already running" if running?
+        if RunRabbitRun::Processes::Signals.running? @pid
+          raise "The process [#{@name}] is already running"
+        end
 
         RunRabbitRun.logger.info "[#{@name}] process starting"
 
         @pid = fork do
           $0 = "[ruby] [RunRabbitRun] #{@name}"
 
-          signals = []
+          signals    = []
 
           Signal.trap(RunRabbitRun::SIGNAL_EXIT)   { signals << RunRabbitRun::SIGNAL_EXIT   }
           Signal.trap(RunRabbitRun::SIGNAL_RELOAD) { signals << RunRabbitRun::SIGNAL_RELOAD }
@@ -38,6 +41,8 @@ module RunRabbitRun
                 call_callback :before_reload
               end
               if signals.include?( RunRabbitRun::SIGNAL_EXIT )
+                @exiting = true
+
                 call_callback :before_exit
                 EventMachine::add_timer( 10 ) do
                   EventMachine.stop { exit }
@@ -50,59 +55,27 @@ module RunRabbitRun
         end
 
         Process.detach(@pid)
+
+      end
+
+      def exiting?
+        @exiting ||= false
       end
 
       def guid
         "#{@name}-#{@pid}"
       end
 
-      def add_periodic_timer seconds, &block
-        EventMachine::add_periodic_timer( seconds ) do
+      def add_timer seconds, &block
+        EventMachine::add_timer( seconds ) do
           block.call
         end
       end
 
-      def stop
-        send_signal(name, RunRabbitRun::SIGNAL_EXIT)
-      end
-
-      def reload
-        send_signal(name, RunRabbitRun::SIGNAL_RELOAD)
-      end
-
-      def send_signal(name, signal)
-        if running?
-          RunRabbitRun.logger.info "[#{name}] send #{signal_name(signal)} signal to process"
-          Process.kill(signal, @pid)
-        else
-          RunRabbitRun.logger.debug "[#{name}] is not running"
+      def add_periodic_timer seconds, &block
+        EventMachine::add_periodic_timer( seconds ) do
+          block.call
         end
-      end
-
-      def signal_name code
-        case code
-        when 'QUIT'
-          'exit'
-        when 'USR1'
-          'reload'
-        when 'KILL'
-          'kill'
-        end
-      end
-
-      def running?
-        return false unless @pid
-
-        begin
-          Process.getpgid(@pid.to_i )
-
-          return true
-        rescue Errno::ESRCH
-        rescue Exception => e
-          RunRabbitRun.logger.error "#{e}, #{e.backtrace.join("\n")}"
-        end
-
-        return false
       end
     end
   end

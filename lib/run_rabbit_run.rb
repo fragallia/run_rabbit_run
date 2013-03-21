@@ -1,6 +1,5 @@
 require "run_rabbit_run/version"
 
-require 'bunny'
 require 'amqp'
 require 'bson'
 require 'json'

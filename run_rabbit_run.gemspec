@@ -20,6 +20,7 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "rake"
   gem.add_dependency "bson_ext"
-  gem.add_dependency "bunny"
   gem.add_dependency "amqp"
+
+  gem.add_development_dependency 'pry'
 end

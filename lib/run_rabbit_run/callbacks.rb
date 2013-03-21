@@ -17,7 +17,7 @@ module RunRabbitRun
     end
 
     def call_callback name, *params
-      @callbacks[name.to_sym].each { | c | c.call *params }
+      @callbacks[name.to_sym].each { | c | c.call *params } if @callbacks
     end
   end
 end
