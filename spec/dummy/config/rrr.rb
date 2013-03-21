@@ -13,3 +13,5 @@ worker :worker2, 'workers/worker_name_2.rb' do
 
   processes 1
 end
+
+worker :worker3, 'workers/worker_name_3.rb', processes: 0

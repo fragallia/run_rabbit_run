@@ -10,7 +10,7 @@ module RunRabbitRun
           processes:     1,
         }.merge(options)
 
-        @options[:processes] = 1 unless @options[:processes].to_i > 0
+        @options[:processes] = 1 unless @options[:processes].to_i >= 0 
 
         raise "File not exists: #{@options[:path]}" unless File.exists?(@options[:path])
       end
@@ -24,7 +24,7 @@ module RunRabbitRun
       end
 
       def processes value
-        options[:processes] = value > 0 ? value : 1
+        options[:processes] = value >= 0 ? value : 1
       end
 
       def log_to_master value

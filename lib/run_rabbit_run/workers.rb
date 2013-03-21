@@ -18,10 +18,18 @@ module RunRabbitRun
 
     def check
       @workers.each do | name, workers |
+        processes = RunRabbitRun.config[:workers][name][:processes]
+        
         workers.each do | guid, worker |
-          worker.run unless worker.running?
+          unless worker.running?
+            if processes == 0
+              @workers[name].delete(guid)
+            else
+              worker.run
+            end
+          end 
         end
-        diff = RunRabbitRun.config[:workers][name][:processes] - workers.size
+        diff = processes - workers.size
         diff.times{ run_new_worker name } if diff > 0
       end
     end
