@@ -35,7 +35,7 @@ pid "tmp/pids/run_rabbit_run.pid"
 
 worker :worker1, 'workers/worker_name_1.rb', processes: 0
 worker :worker2, 'workers/worker_name_2.rb', processes: 2
-worker :worker2, 'workers/worker_name_2.rb', processes: 1
+worker :worker3, 'workers/worker_name_3.rb', processes: 1
 ```
 
 * **log** sets path to log file
