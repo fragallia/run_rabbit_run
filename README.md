@@ -25,6 +25,38 @@ Require the rake tasks in your **Rakefile**
 
     require "run_rabbit_run/tasks"
 
+#### Rake tasks
+
+```console
+RAKE_ENV=production bundle exec rake rrr:start
+```
+
+Starts the master process and it starts all worker processes for **production** environment (default is **development**).
+
+```console
+bundle exec rake rrr:stop
+```
+
+Stops the master process. Master process sends **QUIT** signal to workers and waits for 5 seconds. If processes are still running the master kills them.
+
+```console
+bundle exec rake rrr:reload
+```
+
+Master stops all workers and then starts the profile again.
+
+```console
+bundle exec rake rrr:worker:add[worker_name]
+```
+
+Master runs new process for given worker.
+
+```console
+bundle exec rake rrr:worker:remove[worker_name]
+```
+
+Master stops one worker process.
+
 ### Configuration
 
 you need to create __config/rrr.rb__ file to set your config variables
