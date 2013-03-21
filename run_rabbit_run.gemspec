@@ -23,5 +23,4 @@ Gem::Specification.new do |gem|
   gem.add_dependency "amqp"
 
   gem.add_development_dependency 'pry'
-  gem.add_development_dependency 'pry-remote'
 end

@@ -27,7 +27,15 @@ module RunRabbitRun
     end
 
     def add name
-      run_new_worker name
+      if RunRabbitRun.config[:run].include? name.to_sym
+        run_new_worker name
+      else
+        if RunRabbitRun.config[:workers].keys.include? name.to_sym
+          RunRabbitRun.logger.error "[#{name}] worker is not included into [#{RunRabbitRun.config[:environment]}] profile"
+        else
+          RunRabbitRun.logger.error "No configuration found for [#{name}] worker"
+        end
+      end
     end
 
     def remove name
