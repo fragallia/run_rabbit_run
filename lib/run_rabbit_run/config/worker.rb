@@ -6,7 +6,7 @@ module RunRabbitRun
       def initialize(path, options = {})
         @options = {
           path:          File.expand_path(path),
-          log_to_master: true,
+          log_to_master: false,
           processes:     1,
         }.merge(options)
 
