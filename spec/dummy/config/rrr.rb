@@ -1,5 +1,3 @@
-require 'run_rabbit_run'
-
 #TODO working_directory '/path/to/working/directory'
 
 log "log/run_rabbit_run.log"

@@ -19,15 +19,15 @@ module RunRabbitRun
     def check
       @workers.each do | name, workers |
         processes = RunRabbitRun.config[:workers][name][:processes]
-        
+
         workers.each do | guid, worker |
-          unless worker.running?
+          if worker.pid && worker.pid > 0 && !worker.running?
             if processes == 0
               @workers[name].delete(guid)
             else
               worker.run
             end
-          end 
+          end
         end
         diff = processes - workers.size
         diff.times{ run_new_worker name } if diff > 0
@@ -73,7 +73,7 @@ module RunRabbitRun
     def stop
       # try to stop gracefully 
       @workers.each { | name, workers | workers.each { | guid, worker | worker.stop } }
-     
+
       sleep 1 
 
       @workers.each do | name, workers |

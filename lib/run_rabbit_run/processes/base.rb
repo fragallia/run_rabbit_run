@@ -49,6 +49,8 @@ module RunRabbitRun
                 end
               end
             end
+
+            @starting = false
           end
 
           RunRabbitRun.logger.info "[#{@name}] process finished"
@@ -56,6 +58,10 @@ module RunRabbitRun
 
         Process.detach(@pid)
 
+      end
+
+      def starting?
+        @starting ||= true
       end
 
       def exiting?

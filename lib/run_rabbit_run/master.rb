@@ -12,19 +12,19 @@ module RunRabbitRun
       @master_process ||= begin
         master = RunRabbitRun::Processes::Master.new
         master.pid = Pid.pid
-       
+
         master
       end
     end
-    
+
     def start
       master_process.start do
         workers = RunRabbitRun::Workers.new
         workers.start
 
-        add_periodic_timer 2 do
+        add_periodic_timer 5 do
           begin
-            workers.check unless exiting?
+            workers.check unless exiting? || starting?
           rescue => e
             RunRabbitRun.logger.error e.message
           end

@@ -1,5 +1,7 @@
-RunRabbitRun.logger.info "run worker 3 for 20 seconds"
+input  = channel.queue('input', durable: true, auto_delete: false)
 
-sleep 20
+10.times do | index |
+  publish(input, { some: 'zero data' })
+end
 
 stop

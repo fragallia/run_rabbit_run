@@ -4,7 +4,7 @@ module RunRabbitRun
   module Rabbitmq
     class Base
       include RunRabbitRun::Callbacks
-      
+
       define_callback :on_message_received
       define_callback :on_message_processed
 
@@ -12,7 +12,7 @@ module RunRabbitRun
         opts = options.dup
         time_logging   = opts.delete(:time_logging) || false
 
-        queue.subscribe do | header, payload |
+        queue.subscribe(options) do | header, payload |
           RunRabbitRun.logger.info "[#{queue.name}] [#{Time.now.to_f}] started" if time_logging
           call_callback :on_message_received, queue
 
