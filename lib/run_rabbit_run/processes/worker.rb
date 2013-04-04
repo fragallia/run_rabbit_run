@@ -33,10 +33,23 @@ module RunRabbitRun
             end
             rabbitmq.on_message_processed do | queue |
               system_messages.publish(@name, :master, :message_processed, { queue: queue.name } ) if @options[:log_to_master]
-            end 
+            end
+            rabbitmq.on_error do | queue, e |
+              RunRabbitRun.logger.error "[#{@name}] #{e.message} \n#{e.backtrace.join("\n")}"
+              #system_messages.publish( @name, :master, :error,
+              #  {
+              #    queue: queue.name,
+              #    exception: { message: e.message, backtrace: e.backtrace }
+              #  }
+              #) if @options[:log_to_master]
+            end
 
             add_timer 1 do
-              rabbitmq.instance_eval File.read(@options[:path]), @options[:path]
+              begin
+                rabbitmq.instance_eval File.read(@options[:path]), @options[:path]
+              rescue => e
+                RunRabbitRun.logger.error "[#{@name}] #{e.message} \n#{e.backtrace.join("\n")}"
+              end
             end
 
             before_exit do

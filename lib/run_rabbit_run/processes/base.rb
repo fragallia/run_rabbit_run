@@ -31,7 +31,6 @@ module RunRabbitRun
           Signal.trap(RunRabbitRun::SIGNAL_RELOAD) { signals << RunRabbitRun::SIGNAL_RELOAD }
 
           EventMachine.run do
-
             instance_exec &block
 
             EventMachine::add_periodic_timer( 0.5 ) do

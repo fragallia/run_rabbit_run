@@ -7,6 +7,7 @@ module RunRabbitRun
 
       define_callback :on_message_received
       define_callback :on_message_processed
+      define_callback :on_error
 
       def subscribe(queue, options = {}, &block)
         opts = options.dup
@@ -16,7 +17,11 @@ module RunRabbitRun
           RunRabbitRun.logger.info "[#{queue.name}] [#{Time.now.to_f}] started" if time_logging
           call_callback :on_message_received, queue
 
-          instance_exec(header, JSON.parse(payload), &block)
+          begin
+            instance_exec(header, JSON.parse(payload), &block)
+          rescue => e
+            call_callback :on_error, queue, e
+          end
 
           call_callback :on_message_processed, queue
           RunRabbitRun.logger.info "[#{queue.name}] [#{Time.now.to_f}] finished" if time_logging
