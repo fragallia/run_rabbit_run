@@ -17,6 +17,8 @@ module RunRabbitRun
       load_from_file "#{application_path}/config/rrr.rb"
       load_from_file "#{application_path}/config/rrr/#{@options[:environment]}.rb"
 
+      check_run_statement
+
       options
     end
 
@@ -41,13 +43,20 @@ module RunRabbitRun
     end
 
     def run *workers
-      options[:run] = workers 
+      options[:run] = workers
     end
 
   private
 
     def load_from_file(path)
       instance_eval File.read(path), path
+    end
+
+    def check_run_statement
+      diff = options[:run] - options[:workers].keys
+      if diff.size > 0
+        raise "Configuration error, run statement contains not definded worker name [#{diff.join(',')}]"
+      end
     end
 
   end

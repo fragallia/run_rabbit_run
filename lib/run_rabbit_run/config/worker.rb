@@ -2,7 +2,7 @@ module RunRabbitRun
   module Config
     class Worker
       attr_accessor :options
-      
+
       def initialize(path, options = {})
         @options = {
           path:          File.expand_path(path),
@@ -18,7 +18,7 @@ module RunRabbitRun
       def options
         @options ||= {}
       end
-     
+
       def name value
         options[:name] = value
       end
