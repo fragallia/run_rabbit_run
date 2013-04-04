@@ -24,7 +24,22 @@ module RunRabbitRun
       end
 
       def publish(queue, data)
-        exchange.publish JSON.generate(data), :routing_key => queue.name
+        exchange.publish JSON.generate(data), routing_key: queue.name
+      end
+
+      def publish_sync(queue, data)
+        bunny.exchange('').publish(JSON.generate(data), key: queue.name)
+      end
+
+      def bunny
+        @bunny ||= begin
+          require 'bunny'
+
+          bunny = Bunny.new
+          bunny.start
+
+          bunny
+        end
       end
 
       def connection
@@ -40,6 +55,8 @@ module RunRabbitRun
       end
 
       def stop
+        bunny.stop if @bunny
+
         connection.close {
           EventMachine.stop { exit }
         }

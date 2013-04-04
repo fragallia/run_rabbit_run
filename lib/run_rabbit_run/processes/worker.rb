@@ -12,6 +12,7 @@ module RunRabbitRun
 
       def start &block
         super do
+
           instance_exec &block if block_given?
 
           rabbitmq = RunRabbitRun::Rabbitmq::Base.new

@@ -13,8 +13,6 @@ module RunRabbitRun
 
       def start &block
         super do
-          instance_exec &block
-
           rabbitmq = RunRabbitRun::Rabbitmq::Base.new
           system_messages = RunRabbitRun::Rabbitmq::SystemMessages.new(rabbitmq)
 
@@ -25,6 +23,11 @@ module RunRabbitRun
           before_exit do
             rabbitmq.stop
           end
+
+          add_timer 1 do
+            instance_exec &block
+          end
+
         end
       end
     end

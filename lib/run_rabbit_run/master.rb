@@ -20,23 +20,6 @@ module RunRabbitRun
     def start
       master_process.start do
         workers = RunRabbitRun::Workers.new
-        workers.start
-
-        add_periodic_timer 5 do
-          begin
-            workers.check unless exiting? || starting?
-          rescue => e
-            RunRabbitRun.logger.error e.message
-          end
-        end
-
-        before_exit do
-          workers.stop
-        end
-
-        before_reload do
-          workers.reload
-        end
 
         on_system_message_received do | from, message, data |
           begin
@@ -53,6 +36,24 @@ module RunRabbitRun
           rescue => e
             RunRabbitRun.logger.error e.message
           end
+        end
+
+        workers.start
+
+        add_periodic_timer 5 do
+          begin
+            workers.check unless exiting? || starting?
+          rescue => e
+            RunRabbitRun.logger.error e.message
+          end
+        end
+
+        before_exit do
+          workers.stop
+        end
+
+        before_reload do
+          workers.reload
         end
 
       end
