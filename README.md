@@ -96,7 +96,7 @@ subscribe(test_queue) do | header, data |
 end
 ```
 
-Sometimes we need to have workers which does something and shuts down. For example send some messages and end the process. It is possible if you set `processes` to **zero** for the worker in config file and run `stop` command at the end of the worker script file. If the `processes` count is set to number bigger than **0** then master will run the process again after it finishes. 
+Sometimes we need to have workers which does something and shuts down. For example send some messages and end the process. It is possible if you set `processes` to **0** for the worker in config file. If the `processes` count is set to number bigger than **0** then master will run the process again after it finishes. 
 
 __config/rrr.rb__
 
@@ -111,8 +111,6 @@ __workers/worker_name_1.rb__
 test_queue = channel.queue('test_queue', auto_delete: false)
 
 publish(test_queue, {some: 'data'})
-
-stop
 ```
 
 ## Contributing

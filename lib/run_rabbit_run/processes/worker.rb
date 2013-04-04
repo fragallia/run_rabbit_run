@@ -12,7 +12,6 @@ module RunRabbitRun
 
       def start &block
         super do
-
           instance_exec &block if block_given?
 
           rabbitmq = RunRabbitRun::Rabbitmq::Base.new
@@ -20,20 +19,30 @@ module RunRabbitRun
 
           system_messages.publish(@name, :master, :process_started, { pid: Process.pid } )
 
-          rabbitmq.on_message_received do | queue |
-            system_messages.publish(@name, :master, :message_received, { queue: queue.name } ) if @options[:log_to_master]
-          end
-          rabbitmq.on_message_processed do | queue |
-            system_messages.publish(@name, :master, :message_processed, { queue: queue.name } ) if @options[:log_to_master]
-          end 
+          if @options[:processes] == 0
+            add_timer 1 do
+              rabbitmq.instance_eval File.read(@options[:path]), @options[:path]
 
-          add_timer 1 do
-            rabbitmq.instance_eval File.read(@options[:path]), @options[:path]
-          end
+              system_messages.publish(@name, :master, :process_quit)
+              rabbitmq.stop
+            end
+          else
 
-          before_exit do
-            system_messages.publish(@name, :master, :process_quit)
-            rabbitmq.stop
+            rabbitmq.on_message_received do | queue |
+              system_messages.publish(@name, :master, :message_received, { queue: queue.name } ) if @options[:log_to_master]
+            end
+            rabbitmq.on_message_processed do | queue |
+              system_messages.publish(@name, :master, :message_processed, { queue: queue.name } ) if @options[:log_to_master]
+            end 
+
+            add_timer 1 do
+              rabbitmq.instance_eval File.read(@options[:path]), @options[:path]
+            end
+
+            before_exit do
+              system_messages.publish(@name, :master, :process_quit)
+              rabbitmq.stop
+            end
           end
         end
       end
