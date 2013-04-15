@@ -29,7 +29,7 @@ module RunRabbitRun
       end
 
       def publish(queue, data)
-        exchange.publish JSON.generate(data), routing_key: queue.name
+        exchange.publish JSON.generate(data) , routing_key: queue.name
       end
 
       def publish_sync(queue, data)
@@ -48,7 +48,7 @@ module RunRabbitRun
       end
 
       def connection
-        @connection ||= AMQP.connect(host: '127.0.0.1', username: "guest", password: "guest")
+        @connection ||= AMQP.connect(host: (ENV['RABBITMQ_HOST'] || '127.0.0.1'), username: "guest", password: "guest")
       end
 
       def channel
