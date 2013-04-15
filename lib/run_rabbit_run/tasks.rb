@@ -1,4 +1,5 @@
 require "run_rabbit_run"
+require 'bunny'
 
 namespace :rrr do
   desc 'Starts profile workers'
@@ -15,6 +16,19 @@ namespace :rrr do
   task reload: [ :config ] do
     RunRabbitRun::Master.reload
   end
+
+  desc 'kills all processes with the name RunRabbitRun only on UNIX'
+  task :kill_workers do
+    system("kill `ps -ef | grep RunRabbitRun | grep -v grep | awk '{print $2}'`")
+  end
+
+  desc 'delete all of the queues'
+  task :reset do
+    system("rabbitmqctl stop_app")
+    system("rabbitmqctl reset")
+    system("rabbitmqctl start_app")
+  end
+
 
   namespace :worker do
     desc 'Adds one process for given worker'
