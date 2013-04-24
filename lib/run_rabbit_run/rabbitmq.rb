@@ -48,7 +48,7 @@ module RunRabbitRun
       end
 
       def connection
-        @connection ||= AMQP.connect(host: (ENV['RABBITMQ_HOST'] || '127.0.0.1'), username: "guest", password: "guest")
+        @connection ||= AMQP.connect(RunRabbitRun::Config.options[:rabbitmq])
       end
 
       def channel

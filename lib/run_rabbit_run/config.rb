@@ -12,6 +12,7 @@ module RunRabbitRun
         pid:              "#{application_path}/tmp/pids/run_rabbit_run.pid",
         environment:      (ENV['RAKE_ENV'] || ENV['RAILS_ENV'] || 'development'),
         log:              "log/run_rabbit_run.log",
+        rubbitmq:         {}
       }
 
       load_from_file "#{application_path}/config/rrr.rb"
@@ -44,6 +45,23 @@ module RunRabbitRun
 
     def run *workers
       options[:run] = workers
+    end
+
+    def env value
+      options[:environment] = value
+    end
+
+    def rabbitmq rmqoptions
+      case rmqoptions
+      when String
+      when Hash
+        if rmqoptions.keys.find { | key | !key.is_a? Symbol }
+          raise "ERROR: Only symbol as a key is allowed for rabbitmq options!"
+        end
+      else
+        raise "Hash or String only is allowed as rabbitmq options"
+      end
+      options[:rabbitmq] = rmqoptions
     end
 
   private
