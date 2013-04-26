@@ -2,6 +2,7 @@ module RunRabbitRun
   require 'run_rabbit_run/worker'
 
   class Workers
+
     def initialize
       @workers = {}
     end
