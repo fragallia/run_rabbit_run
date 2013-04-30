@@ -10,6 +10,7 @@ module RunRabbitRun
       @options = {
         application_path: application_path,
         pid:              "#{application_path}/tmp/pids/run_rabbit_run.pid",
+        guid:             "#{application_path}/tmp/pids/run_rabbit_run.guid",
         environment:      (ENV['RAKE_ENV'] || ENV['RAILS_ENV'] || 'development'),
         log:              "log/run_rabbit_run.log",
         rubbitmq:         {}
@@ -33,6 +34,10 @@ module RunRabbitRun
 
     def pid value
       options[:pid] = File.expand_path(value)
+    end
+
+    def guid value
+      options[:guid] = File.expand_path(value)
     end
 
     def worker name, path, options = {}, &block
