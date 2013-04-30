@@ -12,17 +12,12 @@ module RunRabbitRun
         super name
       end
 
-      def guid
-        @guid ||= SecureRandom.uuid
-      end
-
       def start &block
         super do
-
           rabbitmq = RunRabbitRun::Rabbitmq::Base.new
           system_messages = RunRabbitRun::Rabbitmq::SystemMessages.new(rabbitmq)
 
-          system_messages.subscribe "master.#{guid}.#" do | headers, payload |
+          system_messages.subscribe "master.#{RunRabbitRun::Guid.guid}.#" do | headers, payload |
             call_callback :on_system_message_received, payload["from"].to_sym, payload["message"].to_sym, payload["data"]
           end
 

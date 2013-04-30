@@ -2,6 +2,7 @@ require 'run_rabbit_run/workers'
 require 'run_rabbit_run/rabbitmq'
 require 'run_rabbit_run/rabbitmq/system_messages'
 require 'run_rabbit_run/pid'
+require 'run_rabbit_run/guid'
 require 'run_rabbit_run/processes/master'
 
 module RunRabbitRun
@@ -63,10 +64,10 @@ module RunRabbitRun
 
     def add_worker name
       EventMachine.run do
-        rabbitmq = RunRabbitRun::Rabbitmq::Base.new
 
+        rabbitmq = RunRabbitRun::Rabbitmq::Base.new
         system_messages = RunRabbitRun::Rabbitmq::SystemMessages.new(rabbitmq)
-        system_messages.publish(:system, :master, :add_worker, { worker: name })
+        system_messages.publish(:system, "master.#{RunRabbitRun::Guid.guid}", :add_worker, { worker: name })
 
         EventMachine.add_timer(2) do
           rabbitmq.stop
@@ -90,6 +91,7 @@ module RunRabbitRun
     def stop
       RunRabbitRun::Processes::Signals.stop_signal(:master, master_process.pid)
       Pid.remove
+      Guid.remove
     end
 
     def reload

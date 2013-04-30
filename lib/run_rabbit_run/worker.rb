@@ -11,7 +11,7 @@ module RunRabbitRun
 
     def run
       #TODO get path for bundle
-      success = system("RAKE_ENV=#{RunRabbitRun.config[:environment]} bundle exec rake rrr:worker:new[#{@name},#{@guid},#{RunRabbitRun::Master.master_process.guid}]")
+      success = system("RAKE_ENV=#{RunRabbitRun.config[:environment]} bundle exec rake rrr:worker:new[#{@name},#{@guid},#{RunRabbitRun::Guid.guid}]")
     end
 
     def kill
