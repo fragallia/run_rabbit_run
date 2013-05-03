@@ -34,10 +34,10 @@ module RunRabbitRun
 
       def send_signal name, pid, signal
         if running? pid
-          RunRabbitRun.logger.info "[#{name}] send #{signal_name(signal)} signal to process"
+          RunRabbitRun.local_logger.info "[#{name}] send #{signal_name(signal)} signal to process"
           Process.kill(signal, pid)
         else
-          RunRabbitRun.logger.debug "[#{name}] is not running"
+          RunRabbitRun.local_logger.debug "[#{name}] is not running"
         end
       end
 

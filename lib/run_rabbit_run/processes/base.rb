@@ -20,7 +20,7 @@ module RunRabbitRun
           raise "The process [#{@name}] is already running"
         end
 
-        RunRabbitRun.logger.info "[#{@name}] process starting"
+        RunRabbitRun.local_logger.info "[#{@name}] process starting"
 
         @pid = fork do
           $0 = "[ruby] [RunRabbitRun] #{@name}"
@@ -52,7 +52,7 @@ module RunRabbitRun
             @starting = false
           end
 
-          RunRabbitRun.logger.info "[#{@name}] process finished"
+          RunRabbitRun.local_logger.info "[#{@name}] process finished"
         end
 
         Process.detach(@pid)

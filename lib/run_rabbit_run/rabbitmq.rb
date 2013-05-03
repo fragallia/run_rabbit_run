@@ -59,6 +59,10 @@ module RunRabbitRun
         @exchange    ||= channel.direct('')
       end
 
+      def log_exchange
+        @log_exchange = channel.fanout("log")
+      end
+
       def stop
         bunny.stop if @bunny
 
