@@ -24,7 +24,7 @@ module RunRabbitRun
 
         on_system_message_received do | from, message, data |
           begin
-            RunRabbitRun.logger.info "[master] got message [#{message}] from [#{from}] with data [#{data.inspect}]"
+            RunRabbitRun.local_logger.info "[master] got message [#{message}] from [#{from}] with data [#{data.inspect}]"
 
             case message.to_sym
             when :add_worker
