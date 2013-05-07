@@ -75,7 +75,7 @@ module RunRabbitRun
     private 
 
     def _message(message)
-      JSON.generate({message: message, host: Socket.gethostname})
+      JSON.generate({time: Time.now, message: message, host: Socket.gethostname})
     end
 
   end
