@@ -21,7 +21,7 @@ module RunRabbitRun
     def _guid
       @guid = File.open(path, 'r') { |file| file.read }.strip if File.exists?(path)
       unless @guid
-        @guid = SecureRandom.uuid
+        @guid = SecureRandom.uuid.gsub(/[^A-za-z0-9]/,"")
         save(@guid)
       end
 
