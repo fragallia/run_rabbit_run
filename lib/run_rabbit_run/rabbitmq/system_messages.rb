@@ -3,7 +3,7 @@ module RunRabbitRun
     class SystemMessages
       def initialize(rabbitmq)
         @rabbitmq        = rabbitmq
-        @system_queue    = @rabbitmq.channel.queue("profile.#{RunRabbitRun.config[:environment]}.#{RunRabbitRun::Guid.guid}", durable: true, auto_delete: false)
+        @system_queue    = @rabbitmq.channel.queue("profile.#{RunRabbitRun.config[:environment]}.#{RunRabbitRun::Guid.guid}", exclusive: true)
         @system_exchange = @rabbitmq.channel.topic("runrabbitrun.system", durable: true)
       end
 
