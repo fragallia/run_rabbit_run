@@ -11,15 +11,24 @@ module RunRabbitRun
         application_path: application_path,
         pid:              "#{application_path}/tmp/pids/run_rabbit_run.pid",
         guid:             "#{application_path}/tmp/pids/run_rabbit_run.guid",
-        environment:      (ENV['RAKE_ENV'] || ENV['RAILS_ENV'] || 'development'),
+        environment:      (ENV['RACK_ENV'] || ENV['RAILS_ENV'] || 'development'),
         log:              "log/run_rabbit_run.log",
-        rubbitmq:         {}
+        rabbitmq:         {}
       }
 
-      load_from_file "#{application_path}/config/rrr.rb"
-      load_from_file "#{application_path}/config/rrr/#{@options[:environment]}.rb"
+      if File.exists? "#{application_path}/config/rrr.rb"
+        load_from_file "#{application_path}/config/rrr.rb"
+      else
+        puts "Config [#{application_path}/config/rrr.rb] not found" if @options[:environment] != 'test'
+      end
 
-      check_run_statement
+      if File.exists? "#{application_path}/config/rrr/#{@options[:environment]}.rb"
+        load_from_file "#{application_path}/config/rrr/#{@options[:environment]}.rb"
+      else
+        puts "Config [#{application_path}/config/rrr/#{@options[:environment]}.rb] not found" if @options[:environment] != 'test'
+      end
+
+      check_run_statement if options[:run]
 
       options
     end

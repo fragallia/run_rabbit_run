@@ -13,12 +13,12 @@ module RunRabbitRun
         opts = options.dup
         time_logging   = opts.delete(:time_logging) || false
 
-        queue.subscribe(options) do | header, payload |
+        queue.subscribe(options) do | headers, payload |
           RunRabbitRun.logger.info "[#{queue.name}] [#{Time.now.to_f}] started" if time_logging
           call_callback :on_message_received, queue
 
           begin
-            instance_exec(header, JSON.parse(payload), &block)
+            instance_exec(headers, JSON.parse(payload), &block)
           rescue => e
             call_callback :on_error, queue, e
           end

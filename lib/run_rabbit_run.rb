@@ -16,6 +16,8 @@ module RunRabbitRun
   SIGNAL_RELOAD = 'USR1'
   SIGNAL_KILL   = 'KILL'
 
+  @@config = {}
+
   def load_config application_path
     @@config = RunRabbitRun::Config.load(application_path)
   end
@@ -79,5 +81,10 @@ module RunRabbitRun
     end
 
   end
+end
+
+module RRR
+  require 'run_rabbit_run/rrr/worker'
+  require 'run_rabbit_run/rrr/worker_runner'
 end
 

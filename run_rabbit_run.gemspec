@@ -21,7 +21,12 @@ Gem::Specification.new do |gem|
   gem.add_dependency "rake"
   gem.add_dependency "bson_ext"
   gem.add_dependency "amqp"
+  #TODO remove this dependency
   gem.add_dependency "bunny"
+  gem.add_dependency "daemons"
 
   gem.add_development_dependency 'pry'
+  gem.add_development_dependency 'rspec'
+  gem.add_development_dependency 'timecop'
+  gem.add_development_dependency 'evented-spec'
 end
