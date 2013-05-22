@@ -9,14 +9,6 @@ require 'run_rabbit_run/rrr/worker/add_dependency'
 module RRR
   module Worker
 
-#TODO's
-# does master gets the dependencies?
-#   can break if code is incorrect ( wrap in catch )
-#   easy to create rake task which could be run whit the gemfile
-# use --gemfile to specify the gemfile
-
-# change the master to support taking the code by message
-
     def self.run name, &block
       raise 'Name can contain only letters, numbers and _' unless !!(name =~ %r{^[\w]+$})
       if block_given?
@@ -37,7 +29,12 @@ module RRR
 
       include RunRabbitRun::Callbacks
 
-      define_callback :on_start, :on_exit, :on_reload, :on_error
+      define_callback :on_start,
+                      :on_exit,
+                      :on_reload,
+                      :on_error,
+                      :on_message_received,
+                      :on_message_processed
 
       attr_accessor :name
 
@@ -97,11 +94,13 @@ module RRR
         signals    = []
 
         Signal.trap(RunRabbitRun::SIGNAL_EXIT)   { signals << RunRabbitRun::SIGNAL_EXIT   }
+        Signal.trap(RunRabbitRun::SIGNAL_INT)    { signals << RunRabbitRun::SIGNAL_EXIT   }
+        Signal.trap(RunRabbitRun::SIGNAL_TERM)   { signals << RunRabbitRun::SIGNAL_EXIT   }
         Signal.trap(RunRabbitRun::SIGNAL_RELOAD) { signals << RunRabbitRun::SIGNAL_RELOAD }
 
         EM::add_periodic_timer( 0.5 ) do
           reload if signals.delete( RunRabbitRun::SIGNAL_RELOAD )
-          stop   if signals.include?( RunRabbitRun::SIGNAL_EXIT )
+          stop   if signals.delete( RunRabbitRun::SIGNAL_EXIT )
         end
       end
     end

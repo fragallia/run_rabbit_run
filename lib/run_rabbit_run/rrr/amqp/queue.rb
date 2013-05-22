@@ -37,7 +37,7 @@ module RRR
       def publish exchange, message, opts = {}, &block
         queue = RRR::Amqp.channel.queue(name, options)
         queue.bind(exchange, routing_key: name)
-          
+
         exchange.publish(JSON.generate(message), headers.merge(opts), &block)
       end
 

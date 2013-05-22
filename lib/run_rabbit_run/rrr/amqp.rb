@@ -1,7 +1,7 @@
 module RRR
   module Amqp
     extend self
-    
+
     def start
       connection
       channel
@@ -10,7 +10,7 @@ module RRR
     def connection
       @connection ||= begin
         con = AMQP.connect(RunRabbitRun::Config.options[:rabbitmq])
-        
+
         AMQP.connection = con
 
         con
@@ -18,11 +18,20 @@ module RRR
     end
 
     def channel
-      @channel    ||= AMQP::Channel.new(connection, AMQP::Channel.next_channel_id, auto_recovery: true)
+      @channel ||= begin
+        ch = AMQP::Channel.new(connection, AMQP::Channel.next_channel_id, auto_recovery: true)
+        ch.on_error(&method(:handle_channel_exception))
+
+        ch
+      end
     end
 
     def stop
-      EM.add_timer(2.0) { connection.close { EventMachine.stop } }
+      EM.add_timer(2.0) { connection.close { EM.stop } }
+    end
+
+    def handle_channel_exception(channel, channel_close)
+      puts "Oops... a channel-level exception: code = #{channel_close.reply_code}, message = #{channel_close.reply_text}"
     end
   end
 end

@@ -20,5 +20,11 @@ describe 'worker' do
       end
     end
   end
+
+  context '#RRR::WorkerRunner.build' do
+    it 'generates Gemfile'
+    it 'saves worker to the file'
+    it 'runs worker'
+  end
 end
 

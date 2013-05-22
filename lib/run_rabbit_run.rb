@@ -13,6 +13,8 @@ module RunRabbitRun
   extend self
 
   SIGNAL_EXIT   = 'QUIT'
+  SIGNAL_INT    = 'INT'
+  SIGNAL_TERM   = 'TERM'
   SIGNAL_RELOAD = 'USR1'
   SIGNAL_KILL   = 'KILL'
 
@@ -84,7 +86,7 @@ module RunRabbitRun
 end
 
 module RRR
-  require 'run_rabbit_run/rrr/worker'
   require 'run_rabbit_run/rrr/worker_runner'
+  require 'run_rabbit_run/rrr/master_runner'
 end
 

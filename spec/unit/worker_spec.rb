@@ -23,6 +23,10 @@ require 'spec_helper'
 
 describe 'worker' do
   context '#RRR::Worker.run' do
+    context 'callbacks' do
+      #TODO test callbacks
+    end
+
     context 'subscribes' do
       let(:channel)  { stub(:channel) }
       let(:queue)    { stub(:queue) }
@@ -45,6 +49,7 @@ describe 'worker' do
         worker.run
       end
     end
+
     context 'validations' do
       it 'raises error if no queues are defined' do
         worker = RRR::Worker.run 'name' do
@@ -68,6 +73,7 @@ describe 'worker' do
           worker.run
         end.to raise_error('Please define the queue subscribe to')
       end
+
       it 'raises exception if name have something else than letters, numbers and _ ' do
         expect do
           RRR::Worker.run 'name.somethin' do
@@ -75,6 +81,7 @@ describe 'worker' do
           end
         end.to raise_error('Name can contain only letters, numbers and _')
       end
+
       it 'raises exception if no block given' do
         expect do
           RRR::Worker.run 'name_something'
