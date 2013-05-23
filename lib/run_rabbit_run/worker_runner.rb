@@ -7,15 +7,6 @@ module RRR
   module WorkerRunner
     extend self
 
-    #TODO move to the config
-    @daemons_default_options =  {
-      multiple:   true,
-      log_output: true,
-      dir:        File.expand_path("./tmp/pids", '.'),
-      log_dir:    File.expand_path("./log", '.'),
-      ARGV:       [ 'start' ]
-    }
-
     @gemfile_default_gems = {
       run_rabbit_run: []
     }
@@ -59,9 +50,15 @@ module RRR
 
         report_to_master master_name, worker
 
-        options = @daemons_default_options.merge({
-          ontop: ( RRR.config[:env] == 'test' )
-        })
+
+        options = {
+          ontop: ( RRR.config[:env] == 'test' ),
+          multiple:   true,
+          log_output: true,
+          dir:        RRR.config[:pid],
+          log_dir:    RRR.config[:log],
+          ARGV:       [ 'start' ]
+        }
 
         Daemons.run_proc("ruby.rrr.#{worker.name}", options) do
           worker.run

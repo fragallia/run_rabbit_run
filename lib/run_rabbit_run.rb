@@ -1,7 +1,6 @@
 require "run_rabbit_run/version"
 
 require 'amqp'
-require 'bson'
 require 'json'
 require 'logger'
 require 'socket'

@@ -8,7 +8,8 @@ module RRR
       @options = {
         root:     root,
         env:      (ENV['RACK_ENV'] || ENV['RAILS_ENV'] || 'development'),
-        log:      "log/rrr.log",
+        pid:      "#{root}/tmp/pids",
+        log:      "#{root}/log",
         rabbitmq: {}
       }
 
@@ -20,6 +21,10 @@ module RRR
 
     def options
       @options ||= {}
+    end
+
+    def pid value
+      options[:pid] = File.expand_path(value)
     end
 
     def log value

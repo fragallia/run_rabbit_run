@@ -6,21 +6,17 @@ module RRR
   module MasterRunner
     extend self
 
-    #TODO move to the config
-    @daemons_default_options =  {
-      log_output: true,
-      dir:        File.expand_path("./tmp/pids", '.'),
-      log_dir:    File.expand_path("./log", '.'),
-      ARGV:       [ 'start' ]
-    }
-
     def start
       begin
         master = RRR::Master::Base.new
 
-        options = @daemons_default_options.merge({
-          ontop: ( RRR.config[:env] == 'test' )
-        })
+        options = {
+          ontop: ( RRR.config[:env] == 'test' ),
+          log_output: true,
+          dir:        RRR.config[:pid],
+          log_dir:    RRR.config[:log],
+          ARGV:       [ 'start' ]
+        }
 
         Daemons.run_proc("ruby.rrr.master", options) do
           master.run
