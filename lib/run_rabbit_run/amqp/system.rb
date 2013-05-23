@@ -4,7 +4,7 @@ module RRR
       def initialize master_name, worker_name
         @master_name       = master_name
         @worker_name       = worker_name
-        @master_queue_name = "#{RunRabbitRun.config[:environment]}.system.#{@master_name}"
+        @master_queue_name = "#{RRR.config[:env]}.system.#{@master_name}"
       end
 
       def notify message, &block

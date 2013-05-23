@@ -6,9 +6,10 @@ require 'json'
 require 'logger'
 require 'socket'
 
-module RunRabbitRun
-  require 'run_rabbit_run/master'
+module RRR
   require 'run_rabbit_run/config'
+  require 'run_rabbit_run/worker_runner'
+  require 'run_rabbit_run/master_runner'
 
   extend self
 
@@ -20,8 +21,8 @@ module RunRabbitRun
 
   @@config = {}
 
-  def load_config application_path
-    @@config = RunRabbitRun::Config.load(application_path)
+  def load_config root
+    @@config = RRR::Config.load(root)
   end
 
   def config
@@ -29,77 +30,14 @@ module RunRabbitRun
   end
 
   def logger
-    @@logger ||= MQLogger.new
-  end
-
-  def local_logger
-    @@local_logger ||= begin
-      path = self.config[:log]
-
-      FileUtils.mkdir_p(File.dirname(path)) unless File.exists?(File.dirname(path))
-
-      logger = Logger.new(path, 10, 1024000)
-
-      if self.config[:environment] == 'development'
-        logger.level = Logger::DEBUG
-      else
-        logger.level = Logger::INFO
-      end
-
-      logger
-    end
-  end
-
-  class MQLogger
-    
-    def info(message)
-      exchange.publish(_message(message), :routing_key => "info")
-    end
-
-    def error(message)
-      exchange.publish(_message(message), :routing_key => "exception")
-    end
-
-    def debug(message)
-      exchange.publish(_message(message), :routing_key => "debug")
-    end
-
-    def connection
-      @connection ||= AMQP.connect(RunRabbitRun::Config.options[:rabbitmq])
-    end
-
-    def channel
-      @channel    ||= AMQP::Channel.new(connection, AMQP::Channel.next_channel_id, auto_recovery: true)
-    end
-
-    def exchange
-      @exchange ||= channel.topic("log")
-    end
-
-    private 
-
-    def _message(message)
-      JSON.generate({time: Time.now, message: message, host: Socket.gethostname})
-    end
-
-  end
-end
-
-module RRR
-  require 'run_rabbit_run/rrr/worker_runner'
-  require 'run_rabbit_run/rrr/master_runner'
-
-  extend self
-
-  def logger
     @@logger ||= begin
-      path = RunRabbitRun.config[:log]
+      path = RRR.config[:log]
 
       FileUtils.mkdir_p(File.dirname(path)) unless File.exists?(File.dirname(path))
 
       logger = Logger.new(path, 10, 1024000)
 
-      if RunRabbitRun.config[:environment] == 'development'
+      if RRR.config[:env] == 'development'
         logger.level = Logger::DEBUG
       else
         logger.level = Logger::INFO

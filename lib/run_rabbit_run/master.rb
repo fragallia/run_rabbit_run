@@ -1,101 +1,106 @@
-require 'run_rabbit_run/workers'
-require 'run_rabbit_run/rabbitmq'
-require 'run_rabbit_run/rabbitmq/system_messages'
-require 'run_rabbit_run/pid'
-require 'run_rabbit_run/guid'
-require 'run_rabbit_run/processes/master'
+require 'run_rabbit_run/amqp'
+require 'run_rabbit_run/amqp/logger'
 
-module RunRabbitRun
+module RRR
   module Master
-    extend self
 
-    def master_process
-      @master_process ||= begin
-        master = RunRabbitRun::Processes::Master.new
-        master.pid = Pid.pid
+    class Base
+      # unique name for the master process
+      attr_accessor :name
 
-        master
+      # name of the master queue, local workers reports to this queue
+      attr_accessor :queue_name
+
+      # master capacity, that is how many workers master can run
+      attr_accessor :capacity
+
+      # hash with currently running workers
+      attr_accessor :running_workers
+
+      def initialize
+        @capacity = 10
+        @name = "master.#{SecureRandom.uuid.gsub(/[^A-za-z0-9]/,"")}"
+        @queue_name = "#{RRR.config[:env]}.system.#{@name}"
+        @running_workers = {}
       end
-    end
 
-    def start
-      master_process.start do
-        workers = RunRabbitRun::Workers.new
+      def run options = {}
+        EM.run do
+          RRR::Amqp.channel.prefetch 1
+          RRR.logger = RRR::Amqp::Logger.new
 
-        on_system_message_received do | from, message, data |
-          begin
-            RunRabbitRun.local_logger.info "[master] got message [#{message}] from [#{from}] with data [#{data.inspect}]"
+          listen_to_signals
+          listen_to_workers
+          listen_to_worker_new
+          listen_to_worker_destroy
+        end
+      end
 
-            case message.to_sym
-            when :add_worker
-              workers.add(data['worker'])
-            when :remove_worker
-              workers.remove(data['worker'])
-            when :process_started
-              workers.worker(from.to_s).pid = data["pid"].to_i
+      def stop
+        RRR::Amqp.stop
+      end
+
+    private
+
+      def listen_to_worker_destroy
+        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.destroy", durable: true)
+        queue.subscribe( ack: true ) do | headers, payload |
+          if @running_workers[payload['name']] && !@running_workers[payload['name']].empty?
+            RRR::WorkerRunner.stop(@running_workers[payload['name']].shift)
+
+            headers.ack
+          else
+            headers.reject
+          end
+
+        end
+      end
+
+      def listen_to_worker_new
+        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.new", durable: true)
+        queue.subscribe( ack: true ) do | headers, payload |
+          if @capacity > 0
+            RRR::WorkerRunner.build(name, payload['code'])
+
+            headers.ack
+          else
+            headers.reject
+            queue.unsubscribe
+          end
+
+        end
+      end
+
+      def listen_to_workers
+        queue = RRR::Amqp::Queue.new(@queue_name, auto_delete: true)
+        queue.subscribe do | headers, payload |
+          RRR.logger.info "master got message from [#{headers.headers['name']}][#{headers.headers['host']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
+
+          case payload['message'].to_sym
+          when :started
+            if headers.headers[:name] && headers.headers[:pid]
+              @running_workers[headers.headers[:name]] ||= []
+              @running_workers[headers.headers[:name]] << headers.headers[:pid]
             end
-          rescue => e
-            RunRabbitRun.logger.error e.message
+          when :finished
+            if headers.headers[:name] && headers.headers[:pid]
+              @running_workers[headers.headers[:name]].delete(headers.headers[:pid]) if @running_workers[headers.headers[:name]]
+            end
           end
         end
-
-        workers.start
-
-        add_periodic_timer 5 do
-          begin
-            workers.check unless exiting? || starting?
-          rescue => e
-            RunRabbitRun.logger.error e.message
-          end
-        end
-
-        before_exit do
-          workers.stop
-        end
-
-        before_reload do
-          workers.reload
-        end
-
       end
 
-      Pid.save(master_process.pid)
-    end
+      def listen_to_signals
+        signals    = []
 
-    def add_worker name
-      EventMachine.run do
+        Signal.trap(RRR::SIGNAL_EXIT)   { signals << RRR::SIGNAL_EXIT   }
+        Signal.trap(RRR::SIGNAL_INT)    { signals << RRR::SIGNAL_EXIT   }
+        Signal.trap(RRR::SIGNAL_TERM)   { signals << RRR::SIGNAL_EXIT   }
 
-        rabbitmq = RunRabbitRun::Rabbitmq::Base.new
-        system_messages = RunRabbitRun::Rabbitmq::SystemMessages.new(rabbitmq)
-        system_messages.publish(:system, "master.#{RunRabbitRun::Guid.guid}", :add_worker, { worker: name })
-
-        EventMachine.add_timer(2) do
-          rabbitmq.stop
+        EM::add_periodic_timer( 0.5 ) do
+          stop if signals.delete( RRR::SIGNAL_EXIT )
         end
       end
-    end
-
-    def remove_worker name
-      EventMachine.run do
-        rabbitmq = RunRabbitRun::Rabbitmq::Base.new
-
-        system_messages = RunRabbitRun::Rabbitmq::SystemMessages.new(rabbitmq)
-        system_messages.publish(:system, :master, :remove_worker, { worker: name })
-
-        EventMachine.add_timer(2) do
-          rabbitmq.stop
-        end
-      end
-    end
-
-    def stop
-      RunRabbitRun::Processes::Signals.stop_signal(:master, master_process.pid)
-      Pid.remove
-      Guid.remove
-    end
-
-    def reload
-      RunRabbitRun::Processes::Signals.reload_signal(:master, master_process.pid)
     end
   end
 end

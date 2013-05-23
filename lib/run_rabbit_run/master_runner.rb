@@ -1,6 +1,6 @@
 require 'daemons'
-require 'run_rabbit_run/rrr/master'
-require 'run_rabbit_run/rrr/amqp'
+require 'run_rabbit_run/master'
+require 'run_rabbit_run/amqp'
 
 module RRR
   module MasterRunner
@@ -19,7 +19,7 @@ module RRR
         master = RRR::Master::Base.new
 
         options = @daemons_default_options.merge({
-          ontop: ( RunRabbitRun.config[:environment] == 'test' )
+          ontop: ( RRR.config[:env] == 'test' )
         })
 
         Daemons.run_proc("ruby.rrr.master", options) do

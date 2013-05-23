@@ -1,8 +1,8 @@
 RRR::Worker.run 'worker_name_1' do
-  queue :output, durable: true
+  queue :queue1, durable: true
 
   def call
-    queues[:output].notify({ some: :data })
+    queues[:queue1].notify({ some: :data })
   end
 end
 

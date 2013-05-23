@@ -1,3 +1,3 @@
-module RunRabbitRun
+module RRR
   VERSION = "2.0.0"
 end

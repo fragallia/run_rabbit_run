@@ -5,7 +5,7 @@ require 'timecop'
 
 ENV["RACK_ENV"] ||= 'test'
 
-RunRabbitRun.load_config(File.expand_path('.'))
+RRR.load_config(File.expand_path('.'))
 
 # Requires supporting ruby files with custom matchers and macros, etc,
 # in spec/support/ and its subdirectories.

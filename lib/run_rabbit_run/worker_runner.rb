@@ -1,7 +1,7 @@
 require 'daemons'
-require 'run_rabbit_run/rrr/worker'
-require 'run_rabbit_run/rrr/amqp'
-require 'run_rabbit_run/rrr/amqp/system'
+require 'run_rabbit_run/worker'
+require 'run_rabbit_run/amqp'
+require 'run_rabbit_run/amqp/system'
 
 module RRR
   module WorkerRunner
@@ -28,7 +28,7 @@ module RRR
           raise 'worker evaluates with exceptions'
         end
 
-        worker_dir = "#{RunRabbitRun.config[:application_path]}/tmp/workers/#{RunRabbitRun.config[:environment]}/#{worker.name}"
+        worker_dir = "#{RRR.config[:root]}/tmp/workers/#{RRR.config[:env]}/#{worker.name}"
         FileUtils.mkdir_p(worker_dir) unless File.exists?(worker_dir)
 
         create_gemfile worker, "#{worker_dir}/Gemfile"
@@ -44,7 +44,7 @@ module RRR
         raise "bundle install failed: #{output}" unless File.exists?("#{worker_dir}/Gemfile.lock")
 
         Bundler.with_clean_env do
-          output = `cd #{RunRabbitRun.config[:application_path]}; BUNDLE_GEMFILE=#{worker_dir}/Gemfile bundle exec rake rrr:worker:run[#{master_name},#{worker_dir}/worker.rb]`
+          output = `cd #{RRR.config[:root]}; BUNDLE_GEMFILE=#{worker_dir}/Gemfile bundle exec rake rrr:worker:run[#{master_name},#{worker_dir}/worker.rb]`
         end
 
       rescue => e
@@ -60,7 +60,7 @@ module RRR
         report_to_master master_name, worker
 
         options = @daemons_default_options.merge({
-          ontop: ( RunRabbitRun.config[:environment] == 'test' )
+          ontop: ( RRR.config[:env] == 'test' )
         })
 
         Daemons.run_proc("ruby.rrr.#{worker.name}", options) do
@@ -69,6 +69,10 @@ module RRR
       rescue => e
         RRR.logger.error e.message
       end
+    end
+
+    def stop pid
+#TODO implement
     end
 
   private
@@ -83,7 +87,7 @@ module RRR
       gemfile = "source 'https://rubygems.org'\n\n"
 
       gems = @gemfile_default_gems.merge(worker.dependencies || {})
-      gems[:run_rabbit_run] = [ { path: '../../../../../' } ] if ['test', 'development'].include? RunRabbitRun.config[:environment]
+      gems[:run_rabbit_run] = [ { path: '../../../../../' } ] if ['test', 'development'].include? RRR.config[:env]
       gems.each do | gem, args |
         gemfile << "gem '#{gem}'"
 

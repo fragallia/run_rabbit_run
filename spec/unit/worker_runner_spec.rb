@@ -51,8 +51,8 @@ describe 'worker' do
 
       RRR::WorkerRunner.build :master, worker_code
 
-      File.read("#{RunRabbitRun.config[:application_path]}/tmp/workers/test/worker_name/worker.rb").should == worker_code
-      File.read("#{RunRabbitRun.config[:application_path]}/tmp/workers/test/worker_name/Gemfile").should   == <<-EOS
+      File.read("#{RRR.config[:root]}/tmp/workers/test/worker_name/worker.rb").should == worker_code
+      File.read("#{RRR.config[:root]}/tmp/workers/test/worker_name/Gemfile").should   == <<-EOS
 source 'https://rubygems.org'
 
 gem 'run_rabbit_run', {:path=>"../../../../../"}

@@ -1,4 +1,4 @@
-require 'run_rabbit_run/rrr/amqp/queue'
+require 'run_rabbit_run/amqp/queue'
 
 module RRR
   module Worker

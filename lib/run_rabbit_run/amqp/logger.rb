@@ -3,7 +3,7 @@ module RRR
     class Logger 
 
       def initialize
-        @queue_name = "#{RunRabbitRun.config[:environment]}.system.log"
+        @queue_name = "#{RRR.config[:env]}.system.log"
       end
 
       def info message, &block

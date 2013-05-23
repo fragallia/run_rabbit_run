@@ -1,5 +1,5 @@
-module RunRabbitRun
-  module Processes
+module RRR
+  module Utils
     module Signals
       extend self
 
@@ -12,32 +12,32 @@ module RunRabbitRun
           return true
         rescue Errno::ESRCH
         rescue Exception => e
-          RunRabbitRun.logger.error "#{e}, #{e.backtrace.join("\n")}"
+          RRR.logger.error "#{e}, #{e.backtrace.join("\n")}"
         end
 
         return false
       end
 
       def kill_signal name, pid
-        send_signal name, pid, RunRabbitRun::SIGNAL_KILL
+        send_signal name, pid, RRR::SIGNAL_KILL
       end
 
       def stop_signal name, pid
-        send_signal name, pid, RunRabbitRun::SIGNAL_EXIT
+        send_signal name, pid, RRR::SIGNAL_EXIT
       end
 
       def reload_signal name, pid
-        send_signal name, pid, RunRabbitRun::SIGNAL_RELOAD
+        send_signal name, pid, RRR::SIGNAL_RELOAD
       end
 
     private
 
       def send_signal name, pid, signal
         if running? pid
-          RunRabbitRun.local_logger.info "[#{name}] send #{signal_name(signal)} signal to process"
+          RRR.local_logger.info "[#{name}] send #{signal_name(signal)} signal to process"
           Process.kill(signal, pid)
         else
-          RunRabbitRun.local_logger.debug "[#{name}] is not running"
+          RRR.local_logger.debug "[#{name}] is not running"
         end
       end
 

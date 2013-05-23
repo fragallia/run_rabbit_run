@@ -28,9 +28,9 @@ describe 'master' do
       master.stub(:listen_to_worker_destroy)
       master.stub(:listen_to_workers)
 
-      Signal.should_receive(:trap).with(RunRabbitRun::SIGNAL_EXIT)
-      Signal.should_receive(:trap).with(RunRabbitRun::SIGNAL_INT)
-      Signal.should_receive(:trap).with(RunRabbitRun::SIGNAL_TERM)
+      Signal.should_receive(:trap).with(RRR::SIGNAL_EXIT)
+      Signal.should_receive(:trap).with(RRR::SIGNAL_INT)
+      Signal.should_receive(:trap).with(RRR::SIGNAL_TERM)
 
       em do
         master.run

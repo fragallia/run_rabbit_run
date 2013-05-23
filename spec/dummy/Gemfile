@@ -1,3 +1,0 @@
-gem 'run_rabbit_run', path: '../../'
-gem 'pry'
-gem 'pry-remote'

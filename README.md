@@ -92,7 +92,7 @@ test_queue = channel.queue('test_queue', auto_delete: false)
 publish(test_queue, {some: 'data'})
 
 subscribe(test_queue) do | header, data |
-  RunRabbitRun.logger.info data.inspect
+  RRR.logger.info data.inspect
 end
 ```
 

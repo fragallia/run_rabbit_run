@@ -1,4 +1,0 @@
-#!/usr/bin/env rake
-require 'rake'
-require "run_rabbit_run/tasks"
-

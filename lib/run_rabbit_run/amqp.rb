@@ -9,7 +9,7 @@ module RRR
 
     def connection
       @connection ||= begin
-        con = AMQP.connect(RunRabbitRun::Config.options[:rabbitmq])
+        con = AMQP.connect(RRR.config[:rabbitmq])
 
         AMQP.connection = con
 
