@@ -55,8 +55,8 @@ module RRR
         EM.run do
           RRR::Amqp.channel.prefetch processes[:prefetch]
           RRR.logger = RRR::Amqp::Logger.new
-
           watch_signals
+
           call_callback :on_start
 
           if @subscribe

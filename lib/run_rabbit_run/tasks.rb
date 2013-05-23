@@ -42,8 +42,8 @@ namespace :rrr do
   end
 
   namespace :worker do
-    desc 'Runs worker from file'
-    task :run, [ :path ] => [ :config ] do | t, args |
+    desc 'Sends command to the master to start the worker'
+    task :start, [ :path ] => [ :config ] do | t, args |
       raise 'Please specify path to worker' unless args[:path]
       worker_code = File.read(args[:path])
       EM.run do
@@ -53,6 +53,13 @@ namespace :rrr do
           RRR::Amqp.stop(0)
         end
       end
+    end
+
+    desc 'Runs the worker for master'
+    task :run, [ :master_name, :path ] => [ :config ] do | t, args |
+      raise 'Please specify master_name' unless args[:master_name]
+      raise 'Please specify path to worker' unless args[:path]
+      RRR::WorkerRunner.start(args[:master_name], args[:path])
     end
 
     desc 'Adds one process for given worker'

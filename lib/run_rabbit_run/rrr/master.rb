@@ -70,7 +70,7 @@ module RRR
         queue = RRR::Amqp::Queue.new("#{RunRabbitRun.config[:environment]}.system.worker.new", durable: true)
         queue.subscribe( ack: true ) do | headers, payload |
           if @capacity > 0
-            RRR::WorkerRunner.build(payload['code'])
+            RRR::WorkerRunner.build(name, payload['code'])
 
             headers.ack
           else
@@ -82,19 +82,21 @@ module RRR
       end
 
       def listen_to_workers
-        queue = RRR::Amqp::Queue.new(@queue_name, auto_delete: true, exclusive: true)
+        queue = RRR::Amqp::Queue.new(@queue_name, auto_delete: true)
         queue.subscribe do | headers, payload |
-            case payload['message'].to_sym
-            when :started
-              if headers.headers[:name] && headers.headers[:pid]
-                @running_workers[headers.headers[:name]] ||= []
-                @running_workers[headers.headers[:name]] << headers.headers[:pid]
-              end
-            when :finished
-              if headers.headers[:name] && headers.headers[:pid]
-                @running_workers[headers.headers[:name]].delete(headers.headers[:pid]) if @running_workers[headers.headers[:name]]
-              end
+          RRR.logger.info "master got message from [#{headers.headers['name']}][#{headers.headers['host']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
+
+          case payload['message'].to_sym
+          when :started
+            if headers.headers[:name] && headers.headers[:pid]
+              @running_workers[headers.headers[:name]] ||= []
+              @running_workers[headers.headers[:name]] << headers.headers[:pid]
             end
+          when :finished
+            if headers.headers[:name] && headers.headers[:pid]
+              @running_workers[headers.headers[:name]].delete(headers.headers[:pid]) if @running_workers[headers.headers[:name]]
+            end
+          end
         end
       end
 

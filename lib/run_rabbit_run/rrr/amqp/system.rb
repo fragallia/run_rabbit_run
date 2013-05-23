@@ -7,20 +7,15 @@ module RRR
         @master_queue_name = "#{RunRabbitRun.config[:environment]}.system.#{@master_name}"
       end
 
-      def exchange
-        @exchange ||= begin
-          exchange = RRR::Amqp.channel.topic("rrr.system", durable: true)
-
-          queue    = RRR::Amqp.channel.queue(@master_queue_name, durable: true)
-          queue.bind(exchange, routing_key: @master_queue_name)
-          
-          exchange
-        end
-      end
-
       def notify message, &block
-        exchange.publish(JSON.generate( message: message ), options.merge({ headers: headers }), &block)
+        RRR::Amqp.channel.direct('').publish(
+          JSON.generate( message: message ),
+          options.merge({ headers: headers }),
+          &block
+        )
       end
+
+    private
 
       def options
         {
@@ -33,7 +28,8 @@ module RRR
         {
           name: @worker_name,
           created_at: Time.now.to_f,
-          pid: Process.pid
+          pid: Process.pid,
+          host: Socket.gethostname
         }
       end
 

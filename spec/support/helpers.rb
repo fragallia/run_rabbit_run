@@ -7,7 +7,8 @@ module MyHelpers
         headers: {
           name: "name",
           created_at: Time.local(2000).to_f,
-          pid: Process.pid
+          pid: Process.pid,
+          host: 'host'
         }
       }.merge(options)
     end

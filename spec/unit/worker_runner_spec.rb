@@ -10,8 +10,16 @@ describe 'worker' do
         end
       EOS
 
+      channel  = stub(:channel)
       exchange = stub(:exchange)
-      RRR::Amqp::System.any_instance.stub(:exchange).and_return(exchange)
+
+      Socket.stub(:gethostname).and_return('host')
+
+      RRR::Amqp.stub(:channel).and_return(channel)
+
+      channel.stub(:prefetch)
+      channel.stub(:direct).and_return(exchange)
+
       exchange.should_receive(:publish).with("{\"message\":\"started\"}", master_default_headers)
       exchange.should_receive(:publish).with("{\"message\":\"finished\"}", master_default_headers)
 
@@ -41,7 +49,7 @@ describe 'worker' do
       RRR::WorkerRunner.should_receive(:`).with(/bundle install/).once
       RRR::WorkerRunner.should_receive(:`).with(/bundle exec/).once
 
-      RRR::WorkerRunner.build worker_code
+      RRR::WorkerRunner.build :master, worker_code
 
       File.read("#{RunRabbitRun.config[:application_path]}/tmp/workers/test/worker_name/worker.rb").should == worker_code
       File.read("#{RunRabbitRun.config[:application_path]}/tmp/workers/test/worker_name/Gemfile").should   == <<-EOS
@@ -58,7 +66,7 @@ gem 'sinatra', {:git=>"git://github.com/sinatra/sinatra.git"}
       it 'raises exception if worker code evaluates with exception' do
         RRR.logger.should_receive(:error).with(/worker evaluates with exceptions/)
 
-        RRR::WorkerRunner.build <<-EOS
+        RRR::WorkerRunner.build 'master', <<-EOS
           RRR::Worker.run 'worker_name' do
             add_dependency 'some-unreal-gem-name'
           end
@@ -66,7 +74,7 @@ gem 'sinatra', {:git=>"git://github.com/sinatra/sinatra.git"}
       end
       it 'raises exception if bundle install failed' do
         RRR.logger.should_receive(:error).with(/bundle install failed/)
-        RRR::WorkerRunner.build <<-EOS
+        RRR::WorkerRunner.build 'master', <<-EOS
           RRR::Worker.run 'worker_name' do
             add_dependency 'some-unreal-gem-name'
             queue :input

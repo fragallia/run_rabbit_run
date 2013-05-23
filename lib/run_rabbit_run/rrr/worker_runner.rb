@@ -20,7 +20,7 @@ module RRR
       run_rabbit_run: []
     }
 
-    def build worker_code
+    def build master_name, worker_code
       begin
         begin
           worker = eval(worker_code)
@@ -44,9 +44,9 @@ module RRR
         raise "bundle install failed: #{output}" unless File.exists?("#{worker_dir}/Gemfile.lock")
 
         Bundler.with_clean_env do
-          output = `cd #{RunRabbitRun.config[:application_path]}; pwd; BUNDLE_GEMFILE=#{worker_dir}/Gemfile bundle exec rake rrr:worker:run[#{worker_dir}/worker.rb]`
+          output = `cd #{RunRabbitRun.config[:application_path]}; BUNDLE_GEMFILE=#{worker_dir}/Gemfile bundle exec rake rrr:worker:run[#{master_name},#{worker_dir}/worker.rb]`
         end
-        puts output.inspect
+
       rescue => e
         RRR.logger.error e.message
       end
@@ -55,17 +55,16 @@ module RRR
     def start master_name, file_path
       begin
         worker_code = File.read(file_path)
-        @worker = eval(worker_code)
+        worker = eval(worker_code)
 
-        # sets reporting to the master
-        report_to_master master_name
+        report_to_master master_name, worker
 
         options = @daemons_default_options.merge({
           ontop: ( RunRabbitRun.config[:environment] == 'test' )
         })
 
-        Daemons.run_proc("ruby.rrr.#{@worker.name}", options) do
-          @worker.run
+        Daemons.run_proc("ruby.rrr.#{worker.name}", options) do
+          worker.run
         end
       rescue => e
         RRR.logger.error e.message
@@ -73,6 +72,12 @@ module RRR
     end
 
   private
+
+    def report_to_master master_name, worker
+      master = RRR::Amqp::System.new master_name, worker.name
+      worker.on_start { master.notify(:started) }
+      worker.on_exit  { master.notify(:finished) }
+    end
 
     def create_gemfile worker, path
       gemfile = "source 'https://rubygems.org'\n\n"
@@ -92,10 +97,5 @@ module RRR
       File.open(path, 'w') { |f| f.write(gemfile) }
     end
 
-    def report_to_master name
-      @master = RRR::Amqp::System.new name, @worker.name
-      @worker.on_start { @master.notify :started }
-      @worker.on_exit  { @master.notify :finished }
-    end
   end
 end

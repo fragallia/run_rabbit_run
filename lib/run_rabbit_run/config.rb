@@ -18,14 +18,10 @@ module RunRabbitRun
 
       if File.exists? "#{application_path}/config/rrr.rb"
         load_from_file "#{application_path}/config/rrr.rb"
-      else
-        puts "Config [#{application_path}/config/rrr.rb] not found" if @options[:environment] != 'test'
       end
 
       if File.exists? "#{application_path}/config/rrr/#{@options[:environment]}.rb"
         load_from_file "#{application_path}/config/rrr/#{@options[:environment]}.rb"
-      else
-        puts "Config [#{application_path}/config/rrr/#{@options[:environment]}.rb] not found" if @options[:environment] != 'test'
       end
 
       check_run_statement if options[:run]

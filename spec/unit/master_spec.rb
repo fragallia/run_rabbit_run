@@ -45,7 +45,7 @@ describe 'master' do
       master.stub(:listen_to_worker_new)
       master.stub(:listen_to_worker_destroy)
 
-      channel.should_receive(:queue).with(master.queue_name, exclusive: true).and_return(queue)
+      channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
       queue.should_receive(:subscribe)
 
       em do
@@ -84,7 +84,7 @@ describe 'master' do
           with( ack: true ).
           and_yield(stub(:headers, ack: 'something'), JSON.generate(code: 'worker code'))
 
-        RRR::WorkerRunner.should_receive(:build).with('worker code')
+        RRR::WorkerRunner.should_receive(:build).with(master.name, 'worker code')
 
         em do
           master.run
@@ -171,8 +171,9 @@ describe 'master' do
           master.stub(:listen_to_worker_new)
           master.stub(:listen_to_worker_destroy)
 
+          RRR::Amqp::Logger.any_instance.stub(:info)
           headers = stub(:headers, headers: { name: 'worker_name', pid: 1111 } )
-          channel.should_receive(:queue).with(master.queue_name, exclusive: true).and_return(queue)
+          channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
           queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :started))
 
           em do
@@ -192,8 +193,9 @@ describe 'master' do
           master.stub(:listen_to_worker_new)
           master.stub(:listen_to_worker_destroy)
 
+          RRR::Amqp::Logger.any_instance.stub(:info)
           headers = stub(:headers, headers: { name: 'worker_name', pid: 1111 } )
-          channel.should_receive(:queue).with(master.queue_name, exclusive: true).and_return(queue)
+          channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
           queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :finished))
 
           em do

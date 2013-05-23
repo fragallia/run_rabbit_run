@@ -1,15 +1,13 @@
 module RRR
   module Amqp
     class Logger 
-      attr_accessor :name, :options
 
-      def initialize name = 'log'
-        @name       = name     
+      def initialize
         @queue_name = "#{RunRabbitRun.config[:environment]}.system.log"
       end
 
       def info message, &block
-        exchange.publish(
+        info_exchange.publish(
           JSON.generate( message: message ),
           headers.merge(routing_key: "#{@queue_name}.info"),
           &block
@@ -17,7 +15,7 @@ module RRR
       end
 
       def error message, &block
-        exchange.publish(
+        error_exchange.publish(
           JSON.generate( message: message ),
           headers.merge(routing_key: "#{@queue_name}.error"),
           &block
@@ -25,21 +23,40 @@ module RRR
       end
 
       def debug message, &block
-        exchange.publish(
+        debug_exchange.publish(
           JSON.generate( message: message ),
           headers.merge(routing_key: "#{@queue_name}.debug"),
           &block
         )
       end
+
     private
 
-      def exchange
+      def info_exchange
         @exchange ||= begin
-          exchange = RRR::Amqp.channel.fanout('', durable: true)
+          exchange = RRR::Amqp.channel.fanout('rrr.log.info', durable: true)
 
-          RRR::Amqp.channel.queue("#{@queue_name}.info", durable: true)
-          RRR::Amqp.channel.queue("#{@queue_name}.error", durable: true)
-          RRR::Amqp.channel.queue("#{@queue_name}.debug", durable: true)
+          RRR::Amqp.channel.queue("#{@queue_name}.info", durable: true).bind(exchange)
+          
+          exchange
+        end
+      end
+
+      def error_exchange
+        @exchange ||= begin
+          exchange = RRR::Amqp.channel.fanout('rrr.log.error', durable: true)
+
+          RRR::Amqp.channel.queue("#{@queue_name}.error", durable: true).bind(exchange)
+          
+          exchange
+        end
+      end
+
+      def debug_exchange
+        @exchange ||= begin
+          exchange = RRR::Amqp.channel.fanout('rrr.log.debug', durable: true)
+
+          RRR::Amqp.channel.queue("#{@queue_name}.debug", durable: true).bind(exchange)
           
           exchange
         end
