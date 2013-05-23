@@ -22,9 +22,59 @@ describe 'worker' do
   end
 
   context '#RRR::WorkerRunner.build' do
-    it 'generates Gemfile'
-    it 'saves worker to the file'
-    it 'runs worker'
+    it 'runs worker' do
+      worker_code = <<-EOS
+        RRR::Worker.run 'worker_name' do
+          add_dependency 'redis', '=3.0.3'
+          add_dependency 'mongo'
+          add_dependency 'sinatra', git: 'git://github.com/sinatra/sinatra.git'
+
+          queue :input
+          def call; end
+        end
+      EOS
+
+      File.should_receive(:exists?).with(/worker_name$/).and_return(false)
+      File.should_receive(:exists?).with(/Gemfile\.lock/).and_return(false)
+      File.should_receive(:exists?).with(/Gemfile\.lock/).and_return(true)
+
+      RRR::WorkerRunner.should_receive(:`).with(/bundle install/).once
+      RRR::WorkerRunner.should_receive(:`).with(/bundle exec/).once
+
+      RRR::WorkerRunner.build worker_code
+
+      File.read("#{RunRabbitRun.config[:application_path]}/tmp/workers/test/worker_name/worker.rb").should == worker_code
+      File.read("#{RunRabbitRun.config[:application_path]}/tmp/workers/test/worker_name/Gemfile").should   == <<-EOS
+source 'https://rubygems.org'
+
+gem 'run_rabbit_run', {:path=>"../../../../../"}
+gem 'redis', "=3.0.3"
+gem 'mongo'
+gem 'sinatra', {:git=>"git://github.com/sinatra/sinatra.git"}
+      EOS
+    end
+
+    context 'validations' do
+      it 'raises exception if worker code evaluates with exception' do
+        RRR.logger.should_receive(:error).with(/worker evaluates with exceptions/)
+
+        RRR::WorkerRunner.build <<-EOS
+          RRR::Worker.run 'worker_name' do
+            add_dependency 'some-unreal-gem-name'
+          end
+        EOS
+      end
+      it 'raises exception if bundle install failed' do
+        RRR.logger.should_receive(:error).with(/bundle install failed/)
+        RRR::WorkerRunner.build <<-EOS
+          RRR::Worker.run 'worker_name' do
+            add_dependency 'some-unreal-gem-name'
+            queue :input
+            def call; end
+          end
+        EOS
+      end
+    end
   end
 end
 

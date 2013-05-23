@@ -24,13 +24,37 @@ namespace :rrr do
 
   desc 'delete all of the queues'
   task :reset do
-    system("rabbitmqctl stop_app")
-    system("rabbitmqctl reset")
-    system("rabbitmqctl start_app")
+    `rabbitmqctl stop_app`
+    `rabbitmqctl reset`
+    `rabbitmqctl start_app`
   end
 
+  namespace :master do
+    desc 'Starts master'
+    task start: [ :config ] do | t, args |
+      RRR::MasterRunner.start
+    end
+
+    desc 'Stops master'
+    task stop: [ :config ] do | t, args |
+      RRR::MasterRunner.stop
+    end
+  end
 
   namespace :worker do
+    desc 'Runs worker from file'
+    task :run, [ :path ] => [ :config ] do | t, args |
+      raise 'Please specify path to worker' unless args[:path]
+      worker_code = File.read(args[:path])
+      EM.run do
+        RRR::Amqp.start
+        queue = RRR::Amqp::Queue.new("#{RunRabbitRun.config[:environment]}.system.worker.new", durable: true)
+        queue.notify( code: worker_code ) do
+          RRR::Amqp.stop(0)
+        end
+      end
+    end
+
     desc 'Adds one process for given worker'
     task :add, [ :worker_name ] => [ :config ] do | t, args |
       raise 'Please specify worker name' unless args[:worker_name]

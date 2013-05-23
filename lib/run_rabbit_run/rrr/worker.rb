@@ -1,6 +1,7 @@
 require 'run_rabbit_run/callbacks'
 require 'run_rabbit_run/rrr/amqp'
 require 'run_rabbit_run/rrr/amqp/system'
+require 'run_rabbit_run/rrr/amqp/logger'
 require 'run_rabbit_run/rrr/worker/queues'
 require 'run_rabbit_run/rrr/worker/subscribe'
 require 'run_rabbit_run/rrr/worker/processes'
@@ -52,6 +53,9 @@ module RRR
         raise 'Please define the queue subscribe to' if @subscribe && (!queues || (queues && !queues[@subscribe[:queue]]))
 
         EM.run do
+          RRR::Amqp.channel.prefetch processes[:prefetch]
+          RRR.logger = RRR::Amqp::Logger.new
+
           watch_signals
           call_callback :on_start
 

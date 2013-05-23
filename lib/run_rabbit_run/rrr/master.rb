@@ -1,4 +1,5 @@
 require 'run_rabbit_run/rrr/amqp'
+require 'run_rabbit_run/rrr/amqp/logger'
 
 module RRR
   module Master
@@ -36,6 +37,7 @@ module RRR
       def run options = {}
         EM.run do
           RRR::Amqp.channel.prefetch 1
+          RRR.logger = RRR::Amqp::Logger.new
 
           listen_to_signals
           listen_to_workers
@@ -51,13 +53,10 @@ module RRR
     private
 
       def listen_to_worker_destroy
-        queue = RRR::Amqp.channel.queue("#{RunRabbitRun.config[:environment]}.system.worker.destroy", durable: true)
-
+        queue = RRR::Amqp::Queue.new("#{RunRabbitRun.config[:environment]}.system.worker.destroy", durable: true)
         queue.subscribe( ack: true ) do | headers, payload |
-          data = JSON.parse(payload)
-
-          if @running_workers[data['name']] && !@running_workers[data['name']].empty?
-            RRR::WorkerRunner.stop(@running_workers[data['name']].shift)
+          if @running_workers[payload['name']] && !@running_workers[payload['name']].empty?
+            RRR::WorkerRunner.stop(@running_workers[payload['name']].shift)
 
             headers.ack
           else
@@ -68,14 +67,10 @@ module RRR
       end
 
       def listen_to_worker_new
-        queue = RRR::Amqp.channel.queue("#{RunRabbitRun.config[:environment]}.system.worker.new", durable: true)
-
+        queue = RRR::Amqp::Queue.new("#{RunRabbitRun.config[:environment]}.system.worker.new", durable: true)
         queue.subscribe( ack: true ) do | headers, payload |
-          data = JSON.parse(payload)
-
           if @capacity > 0
-            path_to_worker_file = RRR::WorkerRunner.build(data['code'])
-            RRR::WorkerRunner.start(name, path_to_worker_file)
+            RRR::WorkerRunner.build(payload['code'])
 
             headers.ack
           else
@@ -87,21 +82,19 @@ module RRR
       end
 
       def listen_to_workers
-        queue = RRR::Amqp.channel.queue(@queue_name, exclusive: true)
-
+        queue = RRR::Amqp::Queue.new(@queue_name, auto_delete: true, exclusive: true)
         queue.subscribe do | headers, payload |
-          data = JSON.parse(payload)
-          case data['message'].to_sym
-          when :started
-            if headers.headers[:name] && headers.headers[:pid]
-              @running_workers[headers.headers[:name]] ||= []
-              @running_workers[headers.headers[:name]] << headers.headers[:pid]
+            case payload['message'].to_sym
+            when :started
+              if headers.headers[:name] && headers.headers[:pid]
+                @running_workers[headers.headers[:name]] ||= []
+                @running_workers[headers.headers[:name]] << headers.headers[:pid]
+              end
+            when :finished
+              if headers.headers[:name] && headers.headers[:pid]
+                @running_workers[headers.headers[:name]].delete(headers.headers[:pid]) if @running_workers[headers.headers[:name]]
+              end
             end
-          when :finished
-            if headers.headers[:name] && headers.headers[:pid]
-              @running_workers[headers.headers[:name]].delete(headers.headers[:pid]) if @running_workers[headers.headers[:name]]
-            end
-          end
         end
       end
 

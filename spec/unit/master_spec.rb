@@ -84,10 +84,7 @@ describe 'master' do
           with( ack: true ).
           and_yield(stub(:headers, ack: 'something'), JSON.generate(code: 'worker code'))
 
-raise 'need to implement the start working with worker and gemfile paths or with dir where are worker and gemfile'
-
-        RRR::WorkerRunner.should_receive(:build).with('worker code').and_return('path/to/worker/dir')
-        RRR::WorkerRunner.should_receive(:start).with(master.name, 'path/to/worker/dir')
+        RRR::WorkerRunner.should_receive(:build).with('worker code')
 
         em do
           master.run
@@ -105,7 +102,7 @@ raise 'need to implement the start working with worker and gemfile paths or with
         master.stub(:listen_to_worker_destroy)
 
         headers = stub(:headers)
-        channel.should_receive(:queue).with('test.system.worker.new', durable: true).and_return(queue)
+        channel.should_receive(:queue).with('test.system.worker.new', durable: true).twice.and_return(queue)
         queue.
           should_receive(:subscribe).
           with( ack: true ).

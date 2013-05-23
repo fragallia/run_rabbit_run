@@ -26,15 +26,12 @@ module RRR
           master.run
         end
       rescue => e
-        #TODO report error
-        puts e
+        RRR.logger.error e.message
       end
     end
 
     def stop
-        options = @daemons_default_options.merge({
-          ARGV: [ 'stop' ]
-        })
+      options = @daemons_default_options.merge({ ARGV: [ 'stop' ] })
       Daemons.run_proc("ruby.rrr.master", options) {}
     end
   end

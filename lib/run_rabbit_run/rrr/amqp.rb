@@ -26,8 +26,8 @@ module RRR
       end
     end
 
-    def stop
-      EM.add_timer(2.0) { connection.close { EM.stop } }
+    def stop delay = 2.0
+      EM.add_timer(delay) { connection.close { EM.stop } }
     end
 
     def handle_channel_exception(channel, channel_close)

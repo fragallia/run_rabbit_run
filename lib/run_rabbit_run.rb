@@ -88,5 +88,29 @@ end
 module RRR
   require 'run_rabbit_run/rrr/worker_runner'
   require 'run_rabbit_run/rrr/master_runner'
+
+  extend self
+
+  def logger
+    @@logger ||= begin
+      path = RunRabbitRun.config[:log]
+
+      FileUtils.mkdir_p(File.dirname(path)) unless File.exists?(File.dirname(path))
+
+      logger = Logger.new(path, 10, 1024000)
+
+      if RunRabbitRun.config[:environment] == 'development'
+        logger.level = Logger::DEBUG
+      else
+        logger.level = Logger::INFO
+      end
+
+      logger
+    end
+  end
+
+  def logger=(value)
+    @@logger = value
+  end
 end
 

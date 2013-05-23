@@ -1,6 +1,6 @@
 module RRR
   module Amqp
-    class Queue 
+    class Queue
       attr_accessor :name, :options
 
       def initialize name, options = {}
@@ -32,11 +32,14 @@ module RRR
         end
       end
 
+      def unsubscribe
+        RRR::Amqp.channel.queue(name, options).unsubscribe
+      end
+
     private
 
       def publish exchange, message, opts = {}, &block
-        queue = RRR::Amqp.channel.queue(name, options)
-        queue.bind(exchange, routing_key: name)
+        RRR::Amqp.channel.queue(name, options)
 
         exchange.publish(JSON.generate(message), headers.merge(opts), &block)
       end

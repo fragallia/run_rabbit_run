@@ -20,6 +20,7 @@ describe 'worker queues' do
     before do
       RRR::Amqp.stub(:channel).and_return(channel)
       queue.stub(:bind)
+      channel.should_receive(:prefetch)
       channel.should_receive(:queue).with(:input, { durable: true }).and_return(queue)
       exchange.should_receive(:publish).with("{\"some\":\"data\"}", {
         routing_key: :input,

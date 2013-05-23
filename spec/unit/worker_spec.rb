@@ -42,6 +42,7 @@ describe 'worker' do
         end
 
         RRR::Amqp.stub(:channel).and_return(channel)
+        channel.should_receive(:prefetch)
         channel.should_receive(:queue).with(:input, durable: true).and_return(queue)
         queue.should_receive(:subscribe).with(ack: true).and_yield('headers', JSON.generate(some: :data))
         worker.should_receive(:call).with('headers', 'some' => 'data').and_call_original
