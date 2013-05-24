@@ -11,6 +11,15 @@ module RRR
         pid:      "#{root}/tmp/pids",
         log:      "#{root}/log",
         rabbitmq: {}
+
+      }
+
+      @options[:daemons] = {
+        ontop: ( @options[:env] == 'test' ),
+        log_output: true,
+        dir:        @options[:pid],
+        log_dir:    @options[:log],
+        ARGV:       [ 'start' ]
       }
 
       load_from_file "#{root}/config/rrr.rb" if File.exists? "#{root}/config/rrr.rb"

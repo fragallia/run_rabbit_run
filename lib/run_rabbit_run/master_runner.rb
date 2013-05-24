@@ -10,15 +10,7 @@ module RRR
       begin
         master = RRR::Master::Base.new
 
-        options = {
-          ontop: ( RRR.config[:env] == 'test' ),
-          log_output: true,
-          dir:        RRR.config[:pid],
-          log_dir:    RRR.config[:log],
-          ARGV:       [ 'start' ]
-        }
-
-        Daemons.run_proc("ruby.rrr.master", options) do
+        Daemons.run_proc("ruby.rrr.master", RRR.config[:daemons]) do
           master.run
         end
       rescue => e
@@ -27,8 +19,7 @@ module RRR
     end
 
     def stop
-      options = @daemons_default_options.merge({ ARGV: [ 'stop' ] })
-      Daemons.run_proc("ruby.rrr.master", options) {}
+      Daemons.run_proc("ruby.rrr.master", RRR.config[:daemons].merge( ARGV: [ 'stop' ])) {}
     end
   end
 end

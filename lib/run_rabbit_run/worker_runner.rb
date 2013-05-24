@@ -50,17 +50,7 @@ module RRR
 
         report_to_master master_name, worker
 
-
-        options = {
-          ontop: ( RRR.config[:env] == 'test' ),
-          multiple:   true,
-          log_output: true,
-          dir:        RRR.config[:pid],
-          log_dir:    RRR.config[:log],
-          ARGV:       [ 'start' ]
-        }
-
-        Daemons.run_proc("ruby.rrr.#{worker.name}", options) do
+        Daemons.run_proc("ruby.rrr.#{worker.name}", RRR.config[:daemons].merge(multiple: true)) do
           worker.run
         end
       rescue => e
@@ -69,7 +59,10 @@ module RRR
     end
 
     def stop pid
-#TODO implement
+      RRR::Utils::Signals.stop_signal(pid)
+      while RRR::Utils::Signals.running?(pid)
+        sleep 0.1
+      end
     end
 
   private

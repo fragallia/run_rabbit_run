@@ -28,7 +28,11 @@ module RRR
         queue = RRR::Amqp.channel.queue(name, options)
 
         queue.subscribe(opts) do | headers, payload |
-          block.call headers, JSON.parse(payload)
+          begin
+            block.call headers, JSON.parse(payload)
+          rescue => e
+            RRR.logger.error e.message
+          end
         end
       end
 

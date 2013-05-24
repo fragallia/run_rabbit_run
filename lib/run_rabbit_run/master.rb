@@ -79,13 +79,13 @@ module RRR
 
           case payload['message'].to_sym
           when :started
-            if headers.headers[:name] && headers.headers[:pid]
-              @running_workers[headers.headers[:name]] ||= []
-              @running_workers[headers.headers[:name]] << headers.headers[:pid]
+            if headers.headers['name'] && headers.headers['pid']
+              @running_workers[headers.headers['name']] ||= []
+              @running_workers[headers.headers['name']] << headers.headers['pid']
             end
           when :finished
-            if headers.headers[:name] && headers.headers[:pid]
-              @running_workers[headers.headers[:name]].delete(headers.headers[:pid]) if @running_workers[headers.headers[:name]]
+            if headers.headers['name'] && headers.headers['pid']
+              @running_workers[headers.headers['name']].delete(headers.headers['pid']) if @running_workers[headers.headers['name']]
             end
           end
         end

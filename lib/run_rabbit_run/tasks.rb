@@ -1,5 +1,4 @@
 require "run_rabbit_run"
-require 'bunny'
 
 namespace :rrr do
   desc 'kills all processes with the name RunRabbitRun only on UNIX'
@@ -14,16 +13,14 @@ namespace :rrr do
     `rabbitmqctl start_app`
   end
 
-  namespace :master do
-    desc 'Starts master'
-    task start: [ :config ] do | t, args |
-      RRR::MasterRunner.start
-    end
+  desc 'Starts master'
+  task start: [ :config ] do | t, args |
+    RRR::MasterRunner.start
+  end
 
-    desc 'Stops master'
-    task stop: [ :config ] do | t, args |
-      RRR::MasterRunner.stop
-    end
+  desc 'Stops master'
+  task stop: [ :config ] do | t, args |
+    RRR::MasterRunner.stop
   end
 
   namespace :worker do
@@ -43,7 +40,6 @@ namespace :rrr do
     desc 'Sends command to the master to stop the worker'
     task :stop, [ :name ] => [ :config ] do | t, args |
       raise 'Please specify name for worker' unless args[:name]
-      worker_code = File.read(args[:path])
       EM.run do
         RRR::Amqp.start
         queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.destroy", durable: true)

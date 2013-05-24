@@ -172,7 +172,7 @@ describe 'master' do
           master.stub(:listen_to_worker_destroy)
 
           RRR::Amqp::Logger.any_instance.stub(:info)
-          headers = stub(:headers, headers: { name: 'worker_name', pid: 1111 } )
+          headers = stub(:headers, headers: { 'name' => 'worker_name', 'pid' => 1111 } )
           channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
           queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :started))
 
@@ -194,7 +194,7 @@ describe 'master' do
           master.stub(:listen_to_worker_destroy)
 
           RRR::Amqp::Logger.any_instance.stub(:info)
-          headers = stub(:headers, headers: { name: 'worker_name', pid: 1111 } )
+          headers = stub(:headers, headers: { 'name' => 'worker_name', 'pid' => 1111 } )
           channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
           queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :finished))
 
