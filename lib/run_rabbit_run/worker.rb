@@ -1,4 +1,3 @@
-require 'run_rabbit_run/utils/callbacks'
 require 'run_rabbit_run/amqp'
 require 'run_rabbit_run/amqp/system'
 require 'run_rabbit_run/amqp/logger'
@@ -6,6 +5,8 @@ require 'run_rabbit_run/worker/queues'
 require 'run_rabbit_run/worker/subscribe'
 require 'run_rabbit_run/worker/processes'
 require 'run_rabbit_run/worker/add_dependency'
+require 'run_rabbit_run/utils/callbacks'
+require 'run_rabbit_run/utils/signals'
 
 module RRR
   module Worker
@@ -103,14 +104,14 @@ module RRR
       def watch_signals
         signals    = []
 
-        Signal.trap(RRR::SIGNAL_EXIT)   { signals << RRR::SIGNAL_EXIT   }
-        Signal.trap(RRR::SIGNAL_INT)    { signals << RRR::SIGNAL_EXIT   }
-        Signal.trap(RRR::SIGNAL_TERM)   { signals << RRR::SIGNAL_EXIT   }
-        Signal.trap(RRR::SIGNAL_RELOAD) { signals << RRR::SIGNAL_RELOAD }
+        Signal.trap(RRR::Utils::Signals::QUIT)   { signals << RRR::Utils::Signals::QUIT   }
+        Signal.trap(RRR::Utils::Signals::INT)    { signals << RRR::Utils::Signals::QUIT   }
+        Signal.trap(RRR::Utils::Signals::TERM)   { signals << RRR::Utils::Signals::QUIT   }
+        Signal.trap(RRR::Utils::Signals::RELOAD) { signals << RRR::Utils::Signals::RELOAD }
 
         EM::add_periodic_timer( 0.5 ) do
-          reload if signals.delete( RRR::SIGNAL_RELOAD )
-          stop   if signals.delete( RRR::SIGNAL_EXIT )
+          reload if signals.delete( RRR::Utils::Signals::RELOAD )
+          stop   if signals.delete( RRR::Utils::Signals::QUIT )
         end
       end
     end

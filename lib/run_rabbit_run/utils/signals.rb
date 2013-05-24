@@ -3,6 +3,12 @@ module RRR
     module Signals
       extend self
 
+      QUIT   = 'QUIT'
+      INT    = 'INT'
+      TERM   = 'TERM'
+      RELOAD = 'USR1'
+      KILL   = 'KILL'
+
       def running? pid
         return false unless pid
 
@@ -19,25 +25,25 @@ module RRR
       end
 
       def kill_signal name, pid
-        send_signal name, pid, RRR::SIGNAL_KILL
+        send_signal name, pid, RRR::Utils::Signals::KILL
       end
 
       def stop_signal name, pid
-        send_signal name, pid, RRR::SIGNAL_EXIT
+        send_signal name, pid, RRR::Utils::Signals::QUIT
       end
 
       def reload_signal name, pid
-        send_signal name, pid, RRR::SIGNAL_RELOAD
+        send_signal name, pid, RRR::Utils::Signals::RELOAD
       end
 
     private
 
       def send_signal name, pid, signal
         if running? pid
-          RRR.local_logger.info "[#{name}] send #{signal_name(signal)} signal to process"
+          RRR.logger.info "[#{name}] send #{signal_name(signal)} signal to process"
           Process.kill(signal, pid)
         else
-          RRR.local_logger.debug "[#{name}] is not running"
+          RRR.logger.debug "[#{name}] is not running"
         end
       end
 

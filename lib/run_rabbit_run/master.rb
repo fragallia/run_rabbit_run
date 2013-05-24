@@ -1,5 +1,6 @@
 require 'run_rabbit_run/amqp'
 require 'run_rabbit_run/amqp/logger'
+require 'run_rabbit_run/utils/signals'
 
 module RRR
   module Master
@@ -93,12 +94,12 @@ module RRR
       def listen_to_signals
         signals    = []
 
-        Signal.trap(RRR::SIGNAL_EXIT)   { signals << RRR::SIGNAL_EXIT   }
-        Signal.trap(RRR::SIGNAL_INT)    { signals << RRR::SIGNAL_EXIT   }
-        Signal.trap(RRR::SIGNAL_TERM)   { signals << RRR::SIGNAL_EXIT   }
+        Signal.trap(RRR::Utils::Signals::QUIT)   { signals << RRR::Utils::Signals::QUIT   }
+        Signal.trap(RRR::Utils::Signals::INT)    { signals << RRR::Utils::Signals::QUIT   }
+        Signal.trap(RRR::Utils::Signals::TERM)   { signals << RRR::Utils::Signals::QUIT   }
 
         EM::add_periodic_timer( 0.5 ) do
-          stop if signals.delete( RRR::SIGNAL_EXIT )
+          stop if signals.delete( RRR::Utils::Signals::QUIT )
         end
       end
     end

@@ -12,12 +12,6 @@ module RRR
 
   extend self
 
-  SIGNAL_EXIT   = 'QUIT'
-  SIGNAL_INT    = 'INT'
-  SIGNAL_TERM   = 'TERM'
-  SIGNAL_RELOAD = 'USR1'
-  SIGNAL_KILL   = 'KILL'
-
   @@config = {}
 
   def load_config root
