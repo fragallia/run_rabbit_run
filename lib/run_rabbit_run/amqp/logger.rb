@@ -33,31 +33,31 @@ module RRR
     private
 
       def info_exchange
-        @exchange ||= begin
+        @info_exchange ||= begin
           exchange = RRR::Amqp.channel.fanout('rrr.log.info', durable: true)
 
           RRR::Amqp.channel.queue("#{@queue_name}.info", durable: true).bind(exchange)
-          
+
           exchange
         end
       end
 
       def error_exchange
-        @exchange ||= begin
+        @error_exchange ||= begin
           exchange = RRR::Amqp.channel.fanout('rrr.log.error', durable: true)
 
           RRR::Amqp.channel.queue("#{@queue_name}.error", durable: true).bind(exchange)
-          
+
           exchange
         end
       end
 
       def debug_exchange
-        @exchange ||= begin
+        @debug_exchange ||= begin
           exchange = RRR::Amqp.channel.fanout('rrr.log.debug', durable: true)
 
           RRR::Amqp.channel.queue("#{@queue_name}.debug", durable: true).bind(exchange)
-          
+
           exchange
         end
       end

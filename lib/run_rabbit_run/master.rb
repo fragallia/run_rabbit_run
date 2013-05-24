@@ -32,18 +32,23 @@ module RRR
 
           listen_to_signals
           listen_to_workers
-          listen_to_worker_new
-          listen_to_worker_destroy
+          listen_to_worker_start
+          listen_to_worker_stop
         end
       end
 
       def stop
+        @running_workers.each do | name, pids |
+          pids.each do | pid |
+            RRR::WorkerRunner.stop(pid)
+          end
+        end
         RRR::Amqp.stop
       end
 
     private
 
-      def listen_to_worker_destroy
+      def listen_to_worker_stop
         queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.stop", durable: true)
         queue.subscribe( ack: true ) do | headers, payload |
           if @running_workers[payload['name']] && !@running_workers[payload['name']].empty?
@@ -62,7 +67,7 @@ module RRR
         end
       end
 
-      def listen_to_worker_new
+      def listen_to_worker_start
         queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true)
         queue.subscribe( ack: true ) do | headers, payload |
           if @capacity > 0

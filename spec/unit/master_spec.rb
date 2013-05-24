@@ -24,8 +24,8 @@ describe 'master' do
     it 'listens to the signals' do
       master = RRR::Master::Base.new
 
-      master.stub(:listen_to_worker_new)
-      master.stub(:listen_to_worker_destroy)
+      master.stub(:listen_to_worker_start)
+      master.stub(:listen_to_worker_stop)
       master.stub(:listen_to_workers)
 
       Signal.should_receive(:trap).with(RRR::Utils::Signals::QUIT)
@@ -42,8 +42,8 @@ describe 'master' do
     it 'creates and subscribes to the master queue' do
       master = RRR::Master::Base.new
 
-      master.stub(:listen_to_worker_new)
-      master.stub(:listen_to_worker_destroy)
+      master.stub(:listen_to_worker_start)
+      master.stub(:listen_to_worker_stop)
 
       channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
       queue.should_receive(:subscribe)
@@ -60,7 +60,7 @@ describe 'master' do
         master = RRR::Master::Base.new
 
         master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_destroy)
+        master.stub(:listen_to_worker_stop)
 
         channel.should_receive(:queue).with('test.system.worker.start', durable: true).and_return(queue)
         queue.should_receive(:subscribe).with( ack: true )
@@ -76,7 +76,7 @@ describe 'master' do
         master = RRR::Master::Base.new
 
         master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_destroy)
+        master.stub(:listen_to_worker_stop)
 
         channel.should_receive(:queue).with('test.system.worker.start', durable: true).and_return(queue)
         queue.
@@ -99,7 +99,7 @@ describe 'master' do
         master.capacity = 0
 
         master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_destroy)
+        master.stub(:listen_to_worker_stop)
 
         headers = stub(:headers)
         channel.should_receive(:queue).with('test.system.worker.start', durable: true).twice.and_return(queue)
@@ -124,7 +124,7 @@ describe 'master' do
         master.running_workers = { 'name' => [1111, 22222] }
 
         master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_new)
+        master.stub(:listen_to_worker_start)
 
         channel.should_receive(:queue).with('test.system.worker.stop', durable: true).and_return(queue)
         queue.
@@ -146,7 +146,7 @@ describe 'master' do
         master = RRR::Master::Base.new
 
         master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_new)
+        master.stub(:listen_to_worker_start)
 
         headers = stub(:headers)
         channel.should_receive(:queue).with('test.system.worker.stop', durable: true).and_return(queue)
@@ -169,8 +169,8 @@ describe 'master' do
         it 'checks if the worker is started and saves it' do
           master = RRR::Master::Base.new
 
-          master.stub(:listen_to_worker_new)
-          master.stub(:listen_to_worker_destroy)
+          master.stub(:listen_to_worker_start)
+          master.stub(:listen_to_worker_stop)
 
           RRR::Amqp::Logger.any_instance.stub(:info)
           headers = stub(:headers, headers: { 'name' => 'worker_name', 'pid' => 1111 } )
@@ -191,8 +191,8 @@ describe 'master' do
 
           master.running_workers = { 'worker_name' => [1111, 22222] }
 
-          master.stub(:listen_to_worker_new)
-          master.stub(:listen_to_worker_destroy)
+          master.stub(:listen_to_worker_start)
+          master.stub(:listen_to_worker_stop)
 
           RRR::Amqp::Logger.any_instance.stub(:info)
           headers = stub(:headers, headers: { 'name' => 'worker_name', 'pid' => 1111 } )

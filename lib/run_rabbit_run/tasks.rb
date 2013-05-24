@@ -26,14 +26,25 @@ namespace :rrr do
   namespace :worker do
     desc 'Sends command to the master to start the worker'
     task :start, [ :path ] => [ :config ] do | t, args |
-      raise 'Please specify path to worker' unless args[:path]
-      worker_code = File.read(args[:path])
+      raise 'Please specify path to worker'   unless args[:path]
+      raise 'Path you giving is not existing' unless File.exists? args[:path]
+      files = File.directory?(args[:path]) ? Dir["#{args[:path]}/**/*.rb"] : [ args[:path] ]
+
       EM.run do
         RRR::Amqp.start
         queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true)
-        queue.notify( code: worker_code ) do
-          RRR::Amqp.stop(0)
+
+        send_message = Proc.new do
+          file = files.shift
+          if file
+            puts "Starting [#{file}]"
+            queue.notify( code: File.read(file), &send_message )
+          else
+            RRR::Amqp.stop(0)
+          end
         end
+
+        send_message.call
       end
     end
 
