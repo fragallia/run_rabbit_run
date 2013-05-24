@@ -44,28 +44,33 @@ module RRR
     private
 
       def listen_to_worker_destroy
-        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.destroy", durable: true)
+        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.stop", durable: true)
         queue.subscribe( ack: true ) do | headers, payload |
           if @running_workers[payload['name']] && !@running_workers[payload['name']].empty?
             RRR::WorkerRunner.stop(@running_workers[payload['name']].shift)
 
             headers.ack
           else
-            headers.reject
+            if headers.delivery_tag > 100
+              RRR.logger.error "Worker stop failed [#{headers.headers['name']}][#{headers.headers['host']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
+              headers.reject
+            else
+              headers.reject requeue: true
+            end
           end
 
         end
       end
 
       def listen_to_worker_new
-        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.new", durable: true)
+        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true)
         queue.subscribe( ack: true ) do | headers, payload |
           if @capacity > 0
             RRR::WorkerRunner.build(name, payload['code'])
 
             headers.ack
           else
-            headers.reject
+            headers.reject requeue: true
             queue.unsubscribe
           end
 

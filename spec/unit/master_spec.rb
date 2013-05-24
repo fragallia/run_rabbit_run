@@ -56,13 +56,13 @@ describe 'master' do
     end
 
     context 'workers' do
-      it 'subscribes to the system.env.worker.new queue' do
+      it 'subscribes to the system.env.worker.start queue' do
         master = RRR::Master::Base.new
 
         master.stub(:listen_to_workers)
         master.stub(:listen_to_worker_destroy)
 
-        channel.should_receive(:queue).with('test.system.worker.new', durable: true).and_return(queue)
+        channel.should_receive(:queue).with('test.system.worker.start', durable: true).and_return(queue)
         queue.should_receive(:subscribe).with( ack: true )
 
         em do
@@ -78,7 +78,7 @@ describe 'master' do
         master.stub(:listen_to_workers)
         master.stub(:listen_to_worker_destroy)
 
-        channel.should_receive(:queue).with('test.system.worker.new', durable: true).and_return(queue)
+        channel.should_receive(:queue).with('test.system.worker.start', durable: true).and_return(queue)
         queue.
           should_receive(:subscribe).
           with( ack: true ).
@@ -102,13 +102,13 @@ describe 'master' do
         master.stub(:listen_to_worker_destroy)
 
         headers = stub(:headers)
-        channel.should_receive(:queue).with('test.system.worker.new', durable: true).twice.and_return(queue)
+        channel.should_receive(:queue).with('test.system.worker.start', durable: true).twice.and_return(queue)
         queue.
           should_receive(:subscribe).
           with( ack: true ).
           and_yield(headers, JSON.generate(code: 'worker code'))
 
-        headers.should_receive(:reject)
+        headers.should_receive(:reject).with( requeue: true )
         queue.should_receive(:unsubscribe)
 
         em do
@@ -126,7 +126,7 @@ describe 'master' do
         master.stub(:listen_to_workers)
         master.stub(:listen_to_worker_new)
 
-        channel.should_receive(:queue).with('test.system.worker.destroy', durable: true).and_return(queue)
+        channel.should_receive(:queue).with('test.system.worker.stop', durable: true).and_return(queue)
         queue.
           should_receive(:subscribe).
           with( ack: true ).
@@ -149,13 +149,14 @@ describe 'master' do
         master.stub(:listen_to_worker_new)
 
         headers = stub(:headers)
-        channel.should_receive(:queue).with('test.system.worker.destroy', durable: true).and_return(queue)
+        channel.should_receive(:queue).with('test.system.worker.stop', durable: true).and_return(queue)
         queue.
           should_receive(:subscribe).
           with( ack: true ).
           and_yield(headers, JSON.generate(code: 'worker code'))
 
-        headers.should_receive(:reject)
+        headers.should_receive(:delivery_tag).and_return(1)
+        headers.should_receive(:reject).with( requeue: true )
 
         em do
           master.run

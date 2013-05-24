@@ -30,7 +30,7 @@ namespace :rrr do
       worker_code = File.read(args[:path])
       EM.run do
         RRR::Amqp.start
-        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.new", durable: true)
+        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true)
         queue.notify( code: worker_code ) do
           RRR::Amqp.stop(0)
         end
@@ -42,7 +42,7 @@ namespace :rrr do
       raise 'Please specify name for worker' unless args[:name]
       EM.run do
         RRR::Amqp.start
-        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.destroy", durable: true)
+        queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.stop", durable: true)
         queue.notify( name: args[:name] ) do
           RRR::Amqp.stop(0)
         end
