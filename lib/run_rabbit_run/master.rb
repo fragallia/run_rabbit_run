@@ -1,6 +1,7 @@
 require 'run_rabbit_run/amqp'
 require 'run_rabbit_run/amqp/logger'
 require 'run_rabbit_run/utils/signals'
+require 'run_rabbit_run/utils/system'
 
 module RRR
   module Master
@@ -20,7 +21,7 @@ module RRR
 
       def initialize
         @capacity = 10
-        @name = "master.#{SecureRandom.uuid.gsub(/[^A-za-z0-9]/,"")}"
+        @name = "master.#{RRR::Utils::System.ip_address}"
         @queue_name = "#{RRR.config[:env]}.system.#{@name}"
         @running_workers = {}
       end

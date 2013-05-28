@@ -16,7 +16,7 @@ module RRR
         begin
           worker = eval(worker_code)
         rescue => e
-          raise 'worker evaluates with exceptions'
+          raise "worker evaluates with exceptions: #{e.message}"
         end
 
         worker_dir = "#{RRR.config[:root]}/tmp/workers/#{RRR.config[:env]}/#{worker.name}"

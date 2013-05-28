@@ -12,6 +12,7 @@ describe 'worker queues' do
     worker.queues[:input].should be_a(RRR::Amqp::Queue)
   end
 
+
   context 'sending messages' do
     let(:channel)  { stub(:channel) }
     let(:exchange) { stub(:exchange) }
@@ -21,7 +22,6 @@ describe 'worker queues' do
       RRR::Amqp.stub(:channel).and_return(channel)
       queue.stub(:bind)
       channel.should_receive(:prefetch)
-      channel.should_receive(:queue).with(:input, { durable: true }).and_return(queue)
       exchange.should_receive(:publish).with("{\"some\":\"data\"}", {
         routing_key: :input,
         headers: {
@@ -31,6 +31,21 @@ describe 'worker queues' do
       })
     end
 
+    it 'uses specified queue name to send messages' do
+      worker = RRR::Worker.run 'name' do
+        queue :input, durable: true, name: 'queue_real_name'
+        def call
+          queues[:input].notify({ some: :data })
+        end
+      end
+
+      channel.should_receive(:queue).with('queue_real_name', { durable: true }).and_return(queue)
+      channel.should_receive(:direct).with('').and_return(exchange)
+
+      Timecop.freeze(Time.local(2000)) do
+        worker.run
+      end
+    end
     context '#notify' do
       it 'sends message to the direct exchange' do
         worker = RRR::Worker.run 'name' do
@@ -40,6 +55,7 @@ describe 'worker queues' do
           end
         end
 
+        channel.should_receive(:queue).with(:input, { durable: true }).and_return(queue)
         channel.should_receive(:direct).with('').and_return(exchange)
 
         Timecop.freeze(Time.local(2000)) do
@@ -57,6 +73,7 @@ describe 'worker queues' do
           end
         end
 
+        channel.should_receive(:queue).with(:input, { durable: true }).and_return(queue)
         channel.should_receive(:direct).with('').and_return(exchange)
 
         Timecop.freeze(Time.local(2000)) do
@@ -74,6 +91,7 @@ describe 'worker queues' do
           end
         end
 
+        channel.should_receive(:queue).with(:input, { durable: true }).and_return(queue)
         channel.should_receive(:fanout).with('').and_return(exchange)
 
         Timecop.freeze(Time.local(2000)) do
@@ -91,6 +109,7 @@ describe 'worker queues' do
           end
         end
 
+        channel.should_receive(:queue).with(:input, { durable: true }).and_return(queue)
         channel.should_receive(:topic).with('').and_return(exchange)
 
         Timecop.freeze(Time.local(2000)) do

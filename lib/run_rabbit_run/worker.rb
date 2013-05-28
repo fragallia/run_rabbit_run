@@ -59,7 +59,7 @@ module RRR
 
 #TODO test when error
           on_error do | e, data |
-            RRR.Logger.error e.message
+            RRR.logger.error e.message
           end
 
           watch_signals

@@ -1,11 +1,13 @@
 module RRR
   module Amqp
     class Queue
-      attr_accessor :name, :options
+      attr_accessor :name, :queue_name, :options
 
       def initialize name, options = {}
-        @name = name     
-        @options = options
+        @name       = name
+        @options    = options.dup
+
+        @queue_name = @options.delete(:name) || name
       end
 
       def notify message, opts = {}, &block
@@ -25,7 +27,7 @@ module RRR
       end
 
       def subscribe opts = {}, &block
-        queue = RRR::Amqp.channel.queue(name, options)
+        queue = RRR::Amqp.channel.queue(queue_name, options)
 
         queue.subscribe(opts) do | headers, payload |
           begin
@@ -37,13 +39,13 @@ module RRR
       end
 
       def unsubscribe
-        RRR::Amqp.channel.queue(name, options).unsubscribe
+        RRR::Amqp.channel.queue(queue_name, options).unsubscribe
       end
 
     private
 
       def publish exchange, message, opts = {}, &block
-        RRR::Amqp.channel.queue(name, options)
+        RRR::Amqp.channel.queue(queue_name, options)
 
         exchange.publish(JSON.generate(message), headers.merge(opts), &block)
       end

@@ -2,12 +2,12 @@ require 'spec_helper'
 
 describe 'master' do
   it 'generates guid' do
-    SecureRandom.should_receive(:uuid).and_return('nam*$&#e1')
+    RRR::Utils::System.should_receive(:ip_address).and_return('1.1.1.1')
 
     master = RRR::Master::Base.new
 
-    master.name.should       == "master.name1"
-    master.queue_name.should == "test.system.master.name1"
+    master.name.should       == "master.1.1.1.1"
+    master.queue_name.should == "test.system.master.1.1.1.1"
   end
 
   context '#RRR::Master.run' do
@@ -34,7 +34,7 @@ describe 'master' do
 
       em do
         master.run
-        
+
         master.stop
       end
     end
