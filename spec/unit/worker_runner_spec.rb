@@ -13,7 +13,7 @@ describe 'worker' do
       channel  = stub(:channel)
       exchange = stub(:exchange)
 
-      Socket.stub(:gethostname).and_return('host')
+      RRR::Utils::System.stub(:ip_address).and_return('1.1.1.1')
 
       RRR::Amqp.stub(:channel).and_return(channel)
 

@@ -1,3 +1,5 @@
+require 'run_rabbit_run/utils/system'
+
 module RRR
   module Amqp
     class Logger 
@@ -68,7 +70,7 @@ module RRR
           headers: {
             created_at: Time.now.to_f,
             pid: Process.pid,
-            host: Socket.gethostname
+            ip: RRR::Utils::System.ip_address
           }
         }
       end

@@ -58,7 +58,7 @@ module RRR
             headers.ack
           else
             if headers.delivery_tag > 100
-              RRR.logger.error "Worker stop failed [#{headers.headers['name']}][#{headers.headers['host']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
+              RRR.logger.error "Worker stop failed [#{headers.headers['name']}][#{headers.headers['ip']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
               headers.reject
             else
               headers.reject requeue: true
@@ -86,7 +86,7 @@ module RRR
       def listen_to_workers
         queue = RRR::Amqp::Queue.new(@queue_name, auto_delete: true)
         queue.subscribe do | headers, payload |
-          RRR.logger.info "master got message from [#{headers.headers['name']}][#{headers.headers['host']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
+          RRR.logger.info "master got message from [#{headers.headers['name']}][#{headers.headers['ip']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
 
           case payload['message'].to_sym
           when :started

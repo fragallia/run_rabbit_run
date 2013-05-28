@@ -19,6 +19,7 @@ describe 'worker queues' do
     let(:queue)    { stub(:queue) }
 
     before do
+      RRR::Utils::System.stub(:ip_address).and_return('1.1.1.1')
       RRR::Amqp.stub(:channel).and_return(channel)
       queue.stub(:bind)
       channel.should_receive(:prefetch)
@@ -26,7 +27,8 @@ describe 'worker queues' do
         routing_key: :input,
         headers: {
           created_at: Time.local(2000).to_f,
-          pid: Process.pid
+          pid: Process.pid,
+          ip: '1.1.1.1'
         }
       })
     end

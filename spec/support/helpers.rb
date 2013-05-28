@@ -8,7 +8,7 @@ module MyHelpers
           name: "name",
           created_at: Time.local(2000).to_f,
           pid: Process.pid,
-          host: 'host'
+          ip: '1.1.1.1'
         }
       }.merge(options)
     end

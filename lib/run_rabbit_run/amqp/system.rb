@@ -29,7 +29,7 @@ module RRR
           name: @worker_name,
           created_at: Time.now.to_f,
           pid: Process.pid,
-          host: Socket.gethostname
+          ip: RRR::Utils::System.ip_address
         }
       end
 
