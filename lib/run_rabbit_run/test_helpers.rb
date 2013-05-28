@@ -23,7 +23,7 @@ module RRR
 
     module TestWorker
 
-      def push_message message
+      def push_message message, opts = {}
         @logger_messages = []
         @sent_messages   = []
         exchange = stub(:exchange)
@@ -53,8 +53,13 @@ module RRR
           end
         end
 
-        headers = stub(:headers)
-        headers.stub(:headers).and_return(RRR::Amqp.default_headers)
+        headers = opts[:headers] || begin
+          headers = stub(:headers)
+          headers.stub(:headers).and_return(RRR::Amqp.default_headers)
+
+          headers
+        end
+
         RRR::Amqp::Queue.any_instance.stub(:subscribe).and_yield(
           headers, JSON.parse(JSON.generate(message))
         )

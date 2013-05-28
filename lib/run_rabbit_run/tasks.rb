@@ -23,6 +23,12 @@ namespace :rrr do
     RRR::MasterRunner.stop
   end
 
+  desc 'Starts master and system workers'
+  task boot: [ :config ] do | t, args |
+    Rake::Task["rrr:start"].execute
+    Rake::Task["rrr:worker:start"].execute(Rake::TaskArguments.new([:path], [ 'lib/workers' ]))
+  end
+
   namespace :worker do
     desc 'Sends command to the master to start the worker'
     task :start, [ :path ] => [ :config ] do | t, args |
