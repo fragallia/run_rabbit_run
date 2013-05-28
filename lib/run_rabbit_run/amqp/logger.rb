@@ -67,11 +67,7 @@ module RRR
       def headers
         {
           routing_key: @queue_name,
-          headers: {
-            created_at: Time.now.to_f,
-            pid: Process.pid,
-            ip: RRR::Utils::System.ip_address
-          }
+          headers: RRR::Amqp.default_headers
         }
       end
 

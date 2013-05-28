@@ -33,5 +33,13 @@ module RRR
     def handle_channel_exception(channel, channel_close)
       puts "Oops... a channel-level exception: code = #{channel_close.reply_code}, message = #{channel_close.reply_text}"
     end
+
+    def default_headers
+      {
+        created_at: Time.now.to_f,
+        pid: Process.pid,
+        ip: '1.1.1.1'
+      }
+    end
   end
 end

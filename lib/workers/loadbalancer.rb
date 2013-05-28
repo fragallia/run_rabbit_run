@@ -1,7 +1,4 @@
 #TODO
-# * Queues : use name parameter as rabbitmq queue name if it exists.
-# * Write tests for the loadbalancer worker
-# * Optimize tests to have standart helpers for the worker
 # * Optimize rake tasks to be able to run whole system with one command
 
 RRR::Worker.run 'system_loadbalancer' do
@@ -23,7 +20,8 @@ RRR::Worker.run 'system_loadbalancer' do
 
       @workers ||= {}
       @workers[worker.name] ||= {}
-      @workers[worker.name][:code] = payload['code']
+      @workers[worker.name][:instance] = worker
+      @workers[worker.name][:code]     = payload['code']
     end
   end
 end

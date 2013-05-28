@@ -25,12 +25,7 @@ module RRR
       end
 
       def headers
-        {
-          name: @worker_name,
-          created_at: Time.now.to_f,
-          pid: Process.pid,
-          ip: RRR::Utils::System.ip_address
-        }
+        RRR::Amqp.default_headers.merge({ name: @worker_name, })
       end
 
     end

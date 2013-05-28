@@ -13,14 +13,6 @@ module MyHelpers
       }.merge(options)
     end
 
-    def create_worker_file text
-      file = Tempfile.new('worker')
-      file.write text
-      file.close
-
-      file.path
-    end
-
   end
 end
 
