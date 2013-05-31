@@ -38,7 +38,7 @@ module RRR
       {
         created_at: Time.now.to_f,
         pid: Process.pid,
-        ip: '1.1.1.1'
+        ip: RRR::Utils::System.ip_address
       }
     end
   end

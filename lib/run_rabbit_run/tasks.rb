@@ -15,12 +15,12 @@ namespace :rrr do
 
   desc 'Starts master'
   task start: [ :config ] do | t, args |
-    RRR::MasterRunner.start
+    RRR::Processes::MasterRunner.start
   end
 
   desc 'Stops master'
   task stop: [ :config ] do | t, args |
-    RRR::MasterRunner.stop
+    RRR::Processes::MasterRunner.stop
   end
 
   desc 'Starts master and system workers'
@@ -67,8 +67,11 @@ namespace :rrr do
         send_message = Proc.new do
           file = files.shift
           if file
+            worker_code = File.read(file)
+            worker = eval(worker_code)
+
             puts "Sending [#{file}]"
-            queue.notify( action: :deploy, code: File.read(file), &send_message )
+            queue.notify( action: :push, name: worker.name, code: worker_code, &send_message )
           else
             RRR::Amqp.stop(0)
           end
@@ -94,7 +97,7 @@ namespace :rrr do
     task :run, [ :master_name, :path ] => [ :config ] do | t, args |
       raise 'Please specify master_name' unless args[:master_name]
       raise 'Please specify path to worker' unless args[:path]
-      RRR::WorkerRunner.start(args[:master_name], args[:path])
+      RRR::Processes::WorkerRunner.start(args[:master_name], args[:path])
     end
 
   end

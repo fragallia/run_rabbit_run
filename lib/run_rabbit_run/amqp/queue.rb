@@ -7,7 +7,7 @@ module RRR
         @name       = name
         @options    = options.dup
 
-        @queue_name = @options.delete(:name) || name
+        @queue_name = @options.delete(:name) || name.to_s
       end
 
       def notify message, opts = {}, &block
@@ -33,13 +33,33 @@ module RRR
           begin
             block.call headers, JSON.parse(payload)
           rescue => e
-            RRR.logger.error e.message
+            if RRR.config[:env] == 'test'
+              raise e
+            else
+              RRR.logger.error e.message
+            end
           end
         end
       end
 
       def unsubscribe
         RRR::Amqp.channel.queue(queue_name, options).unsubscribe
+      end
+
+      def status &block
+        queue = RRR::Amqp.channel.queue(queue_name, options)
+
+        queue.status do | number_of_messages, number_of_active_consumers |
+          begin
+            block.call number_of_messages, number_of_active_consumers
+          rescue => e
+            if RRR.config[:env] == 'test'
+              raise e
+            else
+              RRR.logger.error e.message
+            end
+          end
+        end
       end
 
     private
@@ -52,7 +72,7 @@ module RRR
 
       def headers
         {
-          routing_key: name,
+          routing_key: queue_name,
           headers: RRR::Amqp.default_headers
         }
       end

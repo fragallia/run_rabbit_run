@@ -4,13 +4,13 @@ describe 'master' do
   it 'generates guid' do
     RRR::Utils::System.should_receive(:ip_address).and_return('1.1.1.1')
 
-    master = RRR::Master::Base.new
+    master = RRR::Processes::Master::Base.new
 
     master.name.should       == "master.1.1.1.1"
     master.queue_name.should == "test.system.master.1.1.1.1"
   end
 
-  context '#RRR::Master.run' do
+  context '#RRR::Processes::Master.run' do
     include EventedSpec::SpecHelper
 
     let(:channel)  { stub(:channel) }
@@ -19,10 +19,11 @@ describe 'master' do
     before do
       RRR::Amqp.stub(:channel).and_return(channel)
       channel.stub(:prefetch)
+      RRR::Utils::System.stub(:ip_address).and_return('1.1.1.1')
     end
 
     it 'listens to the signals' do
-      master = RRR::Master::Base.new
+      master = RRR::Processes::Master::Base.new
 
       master.stub(:listen_to_worker_start)
       master.stub(:listen_to_worker_stop)
@@ -40,7 +41,7 @@ describe 'master' do
     end
 
     it 'creates and subscribes to the master queue' do
-      master = RRR::Master::Base.new
+      master = RRR::Processes::Master::Base.new
 
       master.stub(:listen_to_worker_start)
       master.stub(:listen_to_worker_stop)
@@ -57,7 +58,7 @@ describe 'master' do
 
     context 'workers' do
       it 'subscribes to the system.env.worker.start queue' do
-        master = RRR::Master::Base.new
+        master = RRR::Processes::Master::Base.new
 
         master.stub(:listen_to_workers)
         master.stub(:listen_to_worker_stop)
@@ -73,7 +74,7 @@ describe 'master' do
       end
 
       it 'runs worker wenn TIME COMES' do
-        master = RRR::Master::Base.new
+        master = RRR::Processes::Master::Base.new
 
         master.stub(:listen_to_workers)
         master.stub(:listen_to_worker_stop)
@@ -84,7 +85,7 @@ describe 'master' do
           with( ack: true ).
           and_yield(stub(:headers, ack: 'something'), JSON.generate(code: 'worker code'))
 
-        RRR::WorkerRunner.should_receive(:build).with(master.name, 'worker code')
+        RRR::Processes::WorkerRunner.should_receive(:build).with(master.name, 'worker code')
 
         em do
           master.run
@@ -94,7 +95,7 @@ describe 'master' do
       end
 
       it 'rejects message and unsubscribes from the queue if capacity is reached' do
-        master = RRR::Master::Base.new
+        master = RRR::Processes::Master::Base.new
 
         master.capacity = 0
 
@@ -119,7 +120,7 @@ describe 'master' do
       end
 
       it 'stops worker' do
-        master = RRR::Master::Base.new
+        master = RRR::Processes::Master::Base.new
 
         master.running_workers = { 'name' => [1111, 22222] }
 
@@ -132,7 +133,7 @@ describe 'master' do
           with( ack: true ).
           and_yield(stub(:headers, ack: 'something'), JSON.generate(name: 'name'))
 
-        RRR::WorkerRunner.should_receive(:stop).with(1111)
+        RRR::Processes::WorkerRunner.should_receive(:stop).with(1111)
 
         em do
           master.run
@@ -143,7 +144,7 @@ describe 'master' do
 
       it 'rejects message is there no worker with this name' do
 
-        master = RRR::Master::Base.new
+        master = RRR::Processes::Master::Base.new
 
         master.stub(:listen_to_workers)
         master.stub(:listen_to_worker_start)
@@ -167,7 +168,7 @@ describe 'master' do
 
       context 'worker messages' do
         it 'checks if the worker is started and saves it' do
-          master = RRR::Master::Base.new
+          master = RRR::Processes::Master::Base.new
 
           master.stub(:listen_to_worker_start)
           master.stub(:listen_to_worker_stop)
@@ -175,19 +176,33 @@ describe 'master' do
           RRR::Amqp::Logger.any_instance.stub(:info)
           headers = stub(:headers, headers: { 'name' => 'worker_name', 'pid' => 1111 } )
           channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
+          channel.should_receive(:queue).with('test.system.loadbalancer', durable: true).and_return(queue)
           queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :started))
 
-          em do
-            master.run
+          exchange = stub(:exchange)
+          channel.should_receive(:direct).with("").and_return(exchange)
+          exchange.should_receive(:publish).with("{\"action\":\"stats\",\"stats\":{\"worker_name\":1},\"name\":\"master.1.1.1.1\"}", {
+            routing_key: "test.system.loadbalancer",
+            headers: {
+              created_at: Time.local(2000).to_f,
+              pid: Process.pid,
+              ip: "1.1.1.1"
+            }
+          })
 
-            master.running_workers.should == { 'worker_name' => [ 1111 ] }
+          Timecop.freeze(Time.local(2000)) do
+            em do
+              master.run
 
-            done
+              master.running_workers.should == { 'worker_name' => [ 1111 ] }
+
+              done
+            end
           end
         end
 
         it 'checks if the worker is finished and removes it' do
-          master = RRR::Master::Base.new
+          master = RRR::Processes::Master::Base.new
 
           master.running_workers = { 'worker_name' => [1111, 22222] }
 
@@ -197,14 +212,28 @@ describe 'master' do
           RRR::Amqp::Logger.any_instance.stub(:info)
           headers = stub(:headers, headers: { 'name' => 'worker_name', 'pid' => 1111 } )
           channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
+          channel.should_receive(:queue).with('test.system.loadbalancer', durable: true).and_return(queue)
           queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :finished))
 
-          em do
-            master.run
+          exchange = stub(:exchange)
+          channel.should_receive(:direct).with("").and_return(exchange)
+          exchange.should_receive(:publish).with("{\"action\":\"stats\",\"stats\":{\"worker_name\":1},\"name\":\"master.1.1.1.1\"}", {
+            routing_key: "test.system.loadbalancer",
+            headers: {
+              created_at: Time.local(2000).to_f,
+              pid: Process.pid,
+              ip: "1.1.1.1"
+            }
+          })
 
-            master.running_workers.should == { 'worker_name' => [ 22222 ] }
+          Timecop.freeze(Time.local(2000)) do
+            em do
+              master.run
 
-            done
+              master.running_workers.should == { 'worker_name' => [ 22222 ] }
+
+              done
+            end
           end
         end
       end

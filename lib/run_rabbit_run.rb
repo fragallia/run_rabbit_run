@@ -7,8 +7,8 @@ require 'socket'
 
 module RRR
   require 'run_rabbit_run/config'
-  require 'run_rabbit_run/worker_runner'
-  require 'run_rabbit_run/master_runner'
+  require 'run_rabbit_run/processes/worker_runner'
+  require 'run_rabbit_run/processes/master_runner'
 
   extend self
 
@@ -42,6 +42,10 @@ module RRR
 
   def logger=(value)
     @@logger = value
+  end
+
+  module Loadbalancer
+    require 'run_rabbit_run/loadbalancer/base'
   end
 end
 

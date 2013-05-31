@@ -1,8 +1,10 @@
-RRR::Worker.run 'worker_name_1' do
+RRR::Processes::Worker.run 'worker_name_1' do
   queue :queue1, durable: true
 
   def call
-    queues[:queue1].notify({ some: :data })
+    50.times do | index |
+      queues[:queue1].notify({ some: :data })
+    end
   end
 end
 

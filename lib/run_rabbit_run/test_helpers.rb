@@ -8,7 +8,7 @@ module RRR
 
       worker = eval(File.read(worker_path))
 
-      raise "Worker file should evalute into worker class instance" unless worker.is_a?(RRR::Worker::Base)
+      raise "Worker file should evalute into worker class instance" unless worker.is_a?(RRR::Processes::Worker::Base)
 
       worker.extend(RRR::TestHelpers::TestWorker)
     end
@@ -35,23 +35,23 @@ module RRR
 
         RRR::Amqp.stub(:channel).and_return(channel)
 
-        RRR::Amqp::Logger.any_instance.stub(:error) do | message, &block |
-          @logger_messages << [ :error, message ]
-        end
-
-        RRR::Amqp::Logger.any_instance.stub(:info) do | message, &block |
-          @logger_messages << [ :info, message ]
-        end
-
-        RRR::Amqp::Logger.any_instance.stub(:debug) do | message, &block |
-          @logger_messages << [ :debug, message ]
-        end
-
-        self.queues.each do | name, queue |
-          queue.stub(:publish) do | exchange, message, opts, &block |
-            @sent_messages << { queue: name, message: message }
-          end
-        end
+#        RRR::Amqp::Logger.any_instance.stub(:error) do | message, &block |
+#          @logger_messages << [ :error, message ]
+#        end
+#
+#        RRR::Amqp::Logger.any_instance.stub(:info) do | message, &block |
+#          @logger_messages << [ :info, message ]
+#        end
+#
+#        RRR::Amqp::Logger.any_instance.stub(:debug) do | message, &block |
+#          @logger_messages << [ :debug, message ]
+#        end
+#
+#        self.queues.each do | name, queue |
+#          queue.stub(:publish) do | exchange, message, opts, &block |
+#            @sent_messages << { queue: name, message: message }
+#          end
+#        end
 
         headers = opts[:headers] || begin
           headers = stub(:headers)

@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe 'worker subscribe' do
   it 'sets subscription options' do
-    worker = RRR::Worker.run 'name' do
+    worker = RRR::Processes::Worker.run 'name' do
       subscribe :input, ack: true
       def call; end
     end
@@ -13,7 +13,7 @@ describe 'worker subscribe' do
   context 'invalid setup' do
     it 'raises error if there are another subscribe statement' do
       expect {
-        RRR::Worker.run 'name' do
+        RRR::Processes::Worker.run 'name' do
           subscribe :input1, ack: true
           subscribe :input2, ack: true
           def call; end

@@ -3,41 +3,45 @@ require 'spec_helper'
 describe 'loadbalancer' do
   let(:worker) { load_worker File.expand_path('../../../../lib/workers/loadbalancer.rb', __FILE__) }
 
-  context 'action #deploy' do
-    it 'fails if code is not given' do
-      worker.push_message(action: :deploy)
+  it 'calls push for loadbalancer' do
+    RRR::Loadbalancer::Base.any_instance.should_receive(:push).with('name', 'code')
 
-      worker.logger_messages.should == [ [ :error, 'No code given' ] ]
+    worker.push_message(action: :push, worker_name: 'name', code: 'code')
+  end
+
+  context 'validations' do
+    it 'fails if action not given' do
+      expect {
+        worker.push_message({})
+      }.to raise_error 'No action given'
     end
 
-    it 'starts minimum amount of processes' do
-      worker_code = <<-EOS
-        RRR::Worker.run 'name' do
-          processes min: 3
-          def call; end
-        end
-      EOS
-      worker.push_message(action: :deploy, code: worker_code )
+    context 'action #push' do
+      it 'fails if code is not given' do
+        expect {
+          worker.push_message(action: :push, worker_name: 'name')
+        }.to raise_error 'No code given'
+      end
 
-      worker.logger_messages.should be_empty
-      worker.sent_messages.first.should == { queue: :worker_start, message: { code: worker_code } }
-      worker.sent_messages.count.should == 3
+      it 'fails if worker name is not given' do
+        expect {
+          worker.push_message(action: :push, code: 'code')
+        }.to raise_error 'No worker name given'
+      end
     end
 
-    it 'saves the worker code and instance' do
-      worker_code = <<-EOS
-        RRR::Worker.run 'name' do
-          def call; end
-        end
-      EOS
-      worker.push_message(action: :deploy, code: worker_code )
+    context 'action #stats' do
+      it 'fails if code is not given' do
+        expect {
+          worker.push_message(action: :stats, stats: 'stats')
+        }.to raise_error 'No master name given'
+      end
 
-      workers = worker.instance_variable_get('@workers')
-
-      workers.size.should == 1
-      workers['name'][:code].should == worker_code
-      workers['name'][:instance].should be_a(RRR::Worker::Base)
-      workers['name'][:instance].name.should == 'name'
+      it 'fails if worker name is not given' do
+        expect {
+          worker.push_message(action: :stats, name: 'name')
+        }.to raise_error 'No stats given'
+      end
     end
   end
 end
