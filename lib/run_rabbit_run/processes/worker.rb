@@ -70,7 +70,7 @@ module RRR
 
             call_callback :on_start
 
-            if @subscribe
+            if subscribable?
               queues[@subscribe[:queue]].subscribe(@subscribe[:options]) do | headers, payload |
                 begin
                   call_callback :on_message_received, { payload: payload, headers: headers }

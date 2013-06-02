@@ -3,7 +3,8 @@ module RRR
     class WorkerStats
 
       def initialize
-        @consumers = {}
+        @consumers           = {}
+        @number_of_consumers = {}
         @stats = Array.new(30, 0)
       end
 

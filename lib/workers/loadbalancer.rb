@@ -7,10 +7,11 @@ RRR::Processes::Worker.run 'system_loadbalancer' do
 
   subscribe :loadbalancer
 
+#TODO workers without subscribtion
   def call headers, payload
     raise 'No action given'      unless payload['action']
 
-    @loadbalancer = RRR::Loadbalancer::Base.new
+    @loadbalancer ||= RRR::Loadbalancer::Base.new queues
 
     case payload['action']
     when 'push'
@@ -25,10 +26,11 @@ RRR::Processes::Worker.run 'system_loadbalancer' do
       @loadbalancer.stats payload['name'], payload['stats']
     end
 
-    @stats_timer ||= EM::PeriodicTimer.new(1) { @loadbalancer.check }
+    @stats_timer ||= EM::PeriodicTimer.new(1) { @loadbalancer.check_status }
+    @scale_timer ||= EM::PeriodicTimer.new(1) { @loadbalancer.scale }
 
-    # if master did not report in 5 mins set count to 0 for all workers
-    @master_updates_timer ||= EM::PeriodicTimer.new(300) { @loadbalancer.check_masters }
+    # if master did not report in 1 min set count to 0 for all workers
+    @master_updates_timer ||= EM::PeriodicTimer.new(60) { @loadbalancer.check_masters }
   end
 end
 

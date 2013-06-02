@@ -67,11 +67,11 @@ namespace :rrr do
         send_message = Proc.new do
           file = files.shift
           if file
-            worker_code = File.read(file)
-            worker = eval(worker_code)
+            worker_code = File.read file
+            worker = eval worker_code
 
             puts "Sending [#{file}]"
-            queue.notify( action: :push, name: worker.name, code: worker_code, &send_message )
+            queue.notify( action: :push, worker_name: worker.name, code: worker_code, &send_message )
           else
             RRR::Amqp.stop(0)
           end

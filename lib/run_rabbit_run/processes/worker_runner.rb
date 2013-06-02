@@ -29,8 +29,16 @@ module RRR
           File.delete("#{worker_dir}/Gemfile.lock") if File.exists?("#{worker_dir}/Gemfile.lock")
 
           output = ""
+          # try to install from local gems
           Bundler.with_clean_env do
-            output = `cd #{worker_dir}; bundle install --gemfile #{worker_dir}/Gemfile`
+            output = `cd #{worker_dir}; bundle install --local --gemfile #{worker_dir}/Gemfile`
+          end
+
+          unless File.exists?("#{worker_dir}/Gemfile.lock")
+            # if bundle install --local failed run the remote one
+            Bundler.with_clean_env do
+              output = `cd #{worker_dir}; bundle install --gemfile #{worker_dir}/Gemfile`
+            end
           end
 
           raise "bundle install failed: #{output}" unless File.exists?("#{worker_dir}/Gemfile.lock")
@@ -40,7 +48,11 @@ module RRR
           end
 
         rescue => e
-          RRR.logger.error e.message
+          if RRR.config[:env] == 'test'
+            raise e
+          else
+            RRR.logger.error e.message
+          end
         end
       end
 
@@ -61,9 +73,10 @@ module RRR
 
       def stop pid
         RRR::Utils::Signals.stop_signal(pid)
-        while RRR::Utils::Signals.running?(pid)
-          sleep 0.1
-        end
+      end
+
+      def kill pid
+        RRR::Utils::Signals.kill_signal(pid)
       end
 
     private

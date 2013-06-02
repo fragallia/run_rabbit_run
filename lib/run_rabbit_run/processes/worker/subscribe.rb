@@ -3,12 +3,16 @@ module RRR
     module Worker
       module Subscribe
         def subscribe name, options = {}
-          raise 'You can subscribe only to one queue' if @subscribe
+          raise 'You can subscribe only to one queue' if subscribable?
           @subscribe = { queue: name, options: options }
         end
 
-        def subscribed_queue_name
-          @subscribe[:queue] if @subscribe
+        def subscribable?
+          !!@subscribe
+        end
+
+        def subscribed_to
+          @subscribe[:queue] if subscribable?
         end
       end
     end

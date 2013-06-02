@@ -19,6 +19,7 @@ describe 'master' do
     before do
       RRR::Amqp.stub(:channel).and_return(channel)
       channel.stub(:prefetch)
+      channel.stub(:queue).and_return(queue)
       RRR::Utils::System.stub(:ip_address).and_return('1.1.1.1')
     end
 
@@ -29,6 +30,7 @@ describe 'master' do
       master.stub(:listen_to_worker_stop)
       master.stub(:listen_to_workers)
 
+      queue.stub(:unsubscribe)
       Signal.should_receive(:trap).with(RRR::Utils::Signals::QUIT)
       Signal.should_receive(:trap).with(RRR::Utils::Signals::INT)
       Signal.should_receive(:trap).with(RRR::Utils::Signals::TERM)

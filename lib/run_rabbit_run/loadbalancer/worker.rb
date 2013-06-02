@@ -1,3 +1,5 @@
+require 'run_rabbit_run/loadbalancer/worker_stats'
+
 module RRR
   module Loadbalancer
     class Worker 
@@ -6,13 +8,18 @@ module RRR
       def initialize name, queues
         @name, @queues = name, queues
 
-        @timeout = Time.now.to_i + 30
+        @timeout = 0
         @stats   = RRR::Loadbalancer::WorkerStats.new
       end
 
       def reload
-        stop
-        # it will restore workers automatically
+        stop unless @stats.number_of_consumers == 0
+        #workers with subscription will be run automatically
+        unless worker.subscribable?
+          worker.processes[:min].times do | index |
+            queues[:worker_start].notify name: name, code: code
+          end
+        end
       end
 
       def stop
@@ -25,21 +32,16 @@ module RRR
 
       def update_stats master_name, count
         @stats.update_number_of_consumers(master_name, count)
-      end
-
-      def check
-        return unless worker.subscribed_queue_name
 
         @stopping = false if @stopping && @stats.number_of_consumers == 0
+      end
 
-        worker.queues[worker.subscribed_queue_name].status do | number_of_messages, number_of_active_consumers |
-          @stats.push(number_of_messages)
+      def check_status
+        if worker.subscribable?
+          worker.queues[worker.subscribed_to].status do | number_of_messages, number_of_active_consumers |
+            @stats.push(number_of_messages)
 
-          if can_scale?
-            puts "timeout: capacity:[#{worker.processes[:capacity]}] average:[#{@stats.average}] messages:[#{number_of_messages}] consumers:[#{@stats.number_of_consumers}]"
-
-            scale :up   if has_to_scale_up?
-            scale :down if has_to_scale_down?
+            puts "timeout: stopping:[#{@stopping}] can_scale[#{can_scale?}] average:[#{@stats.average}] messages:[#{number_of_messages}] consumers:[#{@stats.number_of_consumers}]"
           end
         end
       end
@@ -53,14 +55,15 @@ module RRR
         when :down
           queues[:worker_stop].notify name: name
         else
-          return
+          raise "Can't scale to #{direction}"
         end
 
         @timeout = Time.now.to_i + 30
       end
 
       def code= value
-        @code = value
+        @worker = eval(value)
+        @code   = value
       end
 
       def worker
@@ -69,25 +72,37 @@ module RRR
       end
 
       def has_to_scale_up?
-        worker.processes[:capacity] < @stats.average &&
-        @stats.number_of_consumers < worker.processes[:max]
+        @stats.number_of_consumers < worker.processes[:min] ||
+        (
+          worker.processes[:capacity] < @stats.average &&
+          @stats.number_of_consumers < worker.processes[:max]
+        )
       end
 
       def has_to_scale_down?
-        (@stats.number_of_consumers - 1) * worker.processes[:capacity] > @stats.average &&
+        (@stats.number_of_consumers - 1) * worker.processes[:capacity] > ( @stats.number_of_consumers * @stats.average) &&
         @stats.number_of_consumers > worker.processes[:min]
       end
 
       def number_of_processes_to_scale_up
+        if @stats.number_of_consumers < worker.processes[:min]
+          return worker.processes[:min] - @stats.number_of_consumers
+        end
+
         if @stats.number_of_consumers < worker.processes[:desirable]
           return worker.processes[:desirable] - @stats.number_of_consumers
         end
 
-        1 
+        workers_needed = @stats.average/worker.processes[:capacity]
+        if @stats.number_of_consumers + workers_needed > worker.processes[:max]
+          return worker.processes[:max] - @stats.number_of_consumers
+        end
+
+        workers_needed
       end
 
       def can_scale?
-        @timeout < Time.now.to_i && !@stopping
+        worker.subscribable? && @timeout < Time.now.to_i && !@stopping
       end
 
     end

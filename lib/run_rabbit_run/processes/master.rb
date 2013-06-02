@@ -37,19 +37,35 @@ module RRR
             listen_to_worker_start
             listen_to_worker_stop
 
-            EM.add_periodic_timer(60) do
+            EM.add_periodic_timer(30) do
               send_stats_to_loadbalancer
             end
           end
         end
 
         def stop
+          queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true)
+          queue.unsubscribe
+
           @running_workers.each do | name, pids |
             pids.each do | pid |
               RRR::Processes::WorkerRunner.stop(pid)
             end
           end
-          RRR::Amqp.stop
+          # wait to stop all workers
+          EM.add_periodic_timer(0.1) do
+            workers_count =  @running_workers.values.inject(0) { |sum, x | sum + x.count }
+            RRR::Amqp.stop if workers_count == 0
+          end
+          # kill all running workers and exit after 30 secs
+          EM.add_timer(30) do
+            @running_workers.each do | name, pids |
+              pids.each do | pid |
+                RRR::Processes::WorkerRunner.kill(pid)
+              end
+            end
+            RRR::Amqp.stop
+          end
         end
 
       private

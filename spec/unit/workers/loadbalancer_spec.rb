@@ -9,6 +9,12 @@ describe 'loadbalancer' do
     worker.push_message(action: :push, worker_name: 'name', code: 'code')
   end
 
+  it 'calls stats for loadbalancer' do
+    RRR::Loadbalancer::Base.any_instance.should_receive(:stats).with('master_name', { "worker" => 1} )
+
+    worker.push_message(action: :stats, stats: { worker: 1 }, name: 'master_name')
+  end
+
   context 'validations' do
     it 'fails if action not given' do
       expect {

@@ -45,6 +45,7 @@ describe 'worker' do
       File.should_receive(:exists?).with(/worker_name$/).and_return(false)
       File.should_receive(:exists?).with(/Gemfile\.lock/).and_return(false)
       File.should_receive(:exists?).with(/Gemfile\.lock/).and_return(true)
+      File.should_receive(:exists?).with(/Gemfile\.lock/).and_return(true)
 
       RRR::Processes::WorkerRunner.should_receive(:`).with(/bundle install/).once
       RRR::Processes::WorkerRunner.should_receive(:`).with(/bundle exec/).once
@@ -64,23 +65,24 @@ gem 'sinatra', {:git=>"git://github.com/sinatra/sinatra.git"}
 
     context 'validations' do
       it 'raises exception if worker code evaluates with exception' do
-        RRR.logger.should_receive(:error).with(/worker evaluates with exceptions/)
-
-        RRR::Processes::WorkerRunner.build 'master', <<-EOS
-          RRR::Processes::Worker.run 'worker_name' do
-            add_dependency 'some-unreal-gem-name'
-          end
-        EOS
+        expect {
+          RRR::Processes::WorkerRunner.build 'master', <<-EOS
+            RRR::Processes::Worker.run 'worker_name' do
+              add_dependency 'some-unreal-gem-name'
+            end
+          EOS
+        }.to raise_error(/worker evaluates with exceptions/)
       end
       it 'raises exception if bundle install failed' do
-        RRR.logger.should_receive(:error).with(/bundle install failed/)
-        RRR::Processes::WorkerRunner.build 'master', <<-EOS
-          RRR::Processes::Worker.run 'worker_name' do
-            add_dependency 'some-unreal-gem-name'
-            queue :input
-            def call; end
-          end
-        EOS
+        expect {
+          RRR::Processes::WorkerRunner.build 'master', <<-EOS
+            RRR::Processes::Worker.run 'worker_name' do
+              add_dependency 'some-unreal-gem-name'
+              queue :input
+              def call; end
+            end
+          EOS
+        }.to raise_error(/bundle install failed/)
       end
     end
   end
