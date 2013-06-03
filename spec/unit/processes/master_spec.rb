@@ -105,7 +105,7 @@ describe 'master' do
         master.stub(:listen_to_worker_stop)
 
         headers = stub(:headers)
-        channel.should_receive(:queue).with('test.system.worker.start', durable: true).twice.and_return(queue)
+        channel.should_receive(:queue).with('test.system.worker.start', durable: true).once.and_return(queue)
         queue.
           should_receive(:subscribe).
           with( ack: true ).

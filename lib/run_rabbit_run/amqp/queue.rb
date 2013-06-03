@@ -1,7 +1,7 @@
 module RRR
   module Amqp
     class Queue
-      attr_accessor :name, :queue_name, :options
+      attr_accessor :name, :queue, :queue_name, :options
 
       def initialize name, options = {}
         @name       = name
@@ -11,24 +11,22 @@ module RRR
       end
 
       def notify message, opts = {}, &block
-        publish RRR::Amqp.channel.direct("#{RRR.config[:env]}.rrr.direct"), message, opts, &block
+        publish exchange_for(:direct), message, opts, &block
       end
 
       def notify_where message, opts = {}, &block
-        publish RRR::Amqp.channel.topic("#{RRR.config[:env]}.rrr.topic"), message, opts, &block
+        publish exchange_for(:topic), message, opts, &block
       end
 
       def notify_all message, opts = {}, &block
-        publish RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.fanout"), message, opts, &block
+        publish exchange_for(:fanout), message, opts, &block
       end
 
       def notify_one message, opts = {}, &block
-        publish RRR::Amqp.channel.direct("#{RRR.config[:env]}.rrr.direct"), message, opts, &block
+        publish exchange_for(:direct), message, opts, &block
       end
 
       def subscribe opts = {}, &block
-        queue = RRR::Amqp.channel.queue(queue_name, options)
-
         queue.subscribe(opts) do | headers, payload |
           begin
             block.call headers, JSON.parse(payload)
@@ -39,12 +37,10 @@ module RRR
       end
 
       def unsubscribe
-        RRR::Amqp.channel.queue(queue_name, options).unsubscribe
+        queue.unsubscribe
       end
 
       def status &block
-        queue = RRR::Amqp.channel.queue(queue_name, options)
-
         queue.status do | number_of_messages, number_of_active_consumers |
           begin
             block.call number_of_messages, number_of_active_consumers
@@ -55,9 +51,16 @@ module RRR
       end
 
     private
+      def exchange_for type
+        RRR::Amqp.channel.send(type, "#{RRR.config[:env]}.rrr.#{type}")
+      end
+
+      def queue
+        @queue ||= RRR::Amqp.channel.queue(@queue_name, @options)
+      end
 
       def publish exchange, message, opts = {}, &block
-        RRR::Amqp.channel.queue(queue_name, options)
+        queue # defines queue
 
         exchange.publish(JSON.generate(message), headers.merge(opts), &block)
       end
