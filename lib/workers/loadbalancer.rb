@@ -7,7 +7,6 @@ RRR::Processes::Worker.run 'system_loadbalancer' do
 
   subscribe :loadbalancer
 
-#TODO workers without subscribtion
   def call headers, payload
     raise 'No action given'      unless payload['action']
 
