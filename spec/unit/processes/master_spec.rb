@@ -182,7 +182,7 @@ describe 'master' do
           queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :started))
 
           exchange = stub(:exchange)
-          channel.should_receive(:direct).with("").and_return(exchange)
+          channel.should_receive(:direct).with('test.rrr.direct').and_return(exchange)
           exchange.should_receive(:publish).with("{\"action\":\"stats\",\"stats\":{\"worker_name\":1},\"name\":\"master.1.1.1.1\"}", {
             routing_key: "test.system.loadbalancer",
             headers: {
@@ -218,7 +218,7 @@ describe 'master' do
           queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :finished))
 
           exchange = stub(:exchange)
-          channel.should_receive(:direct).with("").and_return(exchange)
+          channel.should_receive(:direct).with('test.rrr.direct').and_return(exchange)
           exchange.should_receive(:publish).with("{\"action\":\"stats\",\"stats\":{\"worker_name\":1},\"name\":\"master.1.1.1.1\"}", {
             routing_key: "test.system.loadbalancer",
             headers: {

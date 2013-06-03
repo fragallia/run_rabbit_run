@@ -42,7 +42,7 @@ describe 'worker queues' do
         }
       })
       channel.should_receive(:queue).with('queue_real_name', { durable: true }).and_return(queue)
-      channel.should_receive(:direct).with('').and_return(exchange)
+      channel.should_receive(:direct).with('test.rrr.direct').and_return(exchange)
 
       Timecop.freeze(Time.local(2000)) do
         worker.run
@@ -71,7 +71,7 @@ describe 'worker queues' do
           end
 
           channel.should_receive(:queue).with('input', { durable: true }).and_return(queue)
-          channel.should_receive(:direct).with('').and_return(exchange)
+          channel.should_receive(:direct).with('test.rrr.direct').and_return(exchange)
 
           Timecop.freeze(Time.local(2000)) do
             worker.run
@@ -89,7 +89,7 @@ describe 'worker queues' do
           end
 
           channel.should_receive(:queue).with('input', { durable: true }).and_return(queue)
-          channel.should_receive(:direct).with('').and_return(exchange)
+          channel.should_receive(:direct).with('test.rrr.direct').and_return(exchange)
 
           Timecop.freeze(Time.local(2000)) do
             worker.run
@@ -107,7 +107,7 @@ describe 'worker queues' do
           end
 
           channel.should_receive(:queue).with('input', { durable: true }).and_return(queue)
-          channel.should_receive(:fanout).with('').and_return(exchange)
+          channel.should_receive(:fanout).with('test.rrr.fanout').and_return(exchange)
 
           Timecop.freeze(Time.local(2000)) do
             worker.run
@@ -125,7 +125,7 @@ describe 'worker queues' do
           end
 
           channel.should_receive(:queue).with('input', { durable: true }).and_return(queue)
-          channel.should_receive(:topic).with('').and_return(exchange)
+          channel.should_receive(:topic).with('test.rrr.topic').and_return(exchange)
 
           Timecop.freeze(Time.local(2000)) do
             worker.run

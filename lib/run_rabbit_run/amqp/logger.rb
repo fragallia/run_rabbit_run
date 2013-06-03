@@ -36,7 +36,7 @@ module RRR
 
       def info_exchange
         @info_exchange ||= begin
-          exchange = RRR::Amqp.channel.fanout('rrr.log.info', durable: true)
+          exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.log.info", durable: true)
 
           RRR::Amqp.channel.queue("#{@queue_name}.info", durable: true).bind(exchange)
 
@@ -46,7 +46,7 @@ module RRR
 
       def error_exchange
         @error_exchange ||= begin
-          exchange = RRR::Amqp.channel.fanout('rrr.log.error', durable: true)
+          exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.log.error", durable: true)
 
           RRR::Amqp.channel.queue("#{@queue_name}.error", durable: true).bind(exchange)
 
@@ -56,7 +56,7 @@ module RRR
 
       def debug_exchange
         @debug_exchange ||= begin
-          exchange = RRR::Amqp.channel.fanout('rrr.log.debug', durable: true)
+          exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.log.debug", durable: true)
 
           RRR::Amqp.channel.queue("#{@queue_name}.debug", durable: true).bind(exchange)
 

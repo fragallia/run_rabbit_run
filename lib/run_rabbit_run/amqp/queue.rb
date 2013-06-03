@@ -11,19 +11,19 @@ module RRR
       end
 
       def notify message, opts = {}, &block
-        publish RRR::Amqp.channel.direct(''), message, opts, &block
+        publish RRR::Amqp.channel.direct("#{RRR.config[:env]}.rrr.direct"), message, opts, &block
       end
 
       def notify_where message, opts = {}, &block
-        publish RRR::Amqp.channel.topic(''), message, opts, &block
+        publish RRR::Amqp.channel.topic("#{RRR.config[:env]}.rrr.topic"), message, opts, &block
       end
 
       def notify_all message, opts = {}, &block
-        publish RRR::Amqp.channel.fanout(''), message, opts, &block
+        publish RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.fanout"), message, opts, &block
       end
 
       def notify_one message, opts = {}, &block
-        publish RRR::Amqp.channel.direct(''), message, opts, &block
+        publish RRR::Amqp.channel.direct("#{RRR.config[:env]}.rrr.direct"), message, opts, &block
       end
 
       def subscribe opts = {}, &block

@@ -8,7 +8,7 @@ module RRR
       end
 
       def notify message, &block
-        RRR::Amqp.channel.direct('').publish(
+        RRR::Amqp.channel.direct("#{RRR.config[:env]}.rrr.direct").publish(
           JSON.generate( message: message ),
           options.merge({ headers: headers }),
           &block
