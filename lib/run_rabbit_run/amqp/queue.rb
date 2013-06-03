@@ -33,11 +33,7 @@ module RRR
           begin
             block.call headers, JSON.parse(payload)
           rescue => e
-            if RRR.config[:env] == 'test'
-              raise e
-            else
-              RRR.logger.error e.message
-            end
+            RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
           end
         end
       end
@@ -53,11 +49,7 @@ module RRR
           begin
             block.call number_of_messages, number_of_active_consumers
           rescue => e
-            if RRR.config[:env] == 'test'
-              raise e
-            else
-              RRR.logger.error e.message
-            end
+            RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
           end
         end
       end

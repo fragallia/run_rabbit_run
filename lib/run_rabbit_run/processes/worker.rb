@@ -59,11 +59,7 @@ module RRR
             RRR.logger = RRR::Amqp::Logger.new
 
             on_error do | e, data |
-              if RRR.config[:env] == 'test'
-                raise e
-              else
-                RRR.logger.error "#{e.message} : #{e.backtrace}"
-              end
+              RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
             end
 
             watch_signals

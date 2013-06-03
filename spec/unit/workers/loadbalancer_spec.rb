@@ -19,20 +19,20 @@ describe 'loadbalancer' do
     it 'fails if action not given' do
       expect {
         worker.push_message({})
-      }.to raise_error 'No action given'
+      }.to raise_error /No action given/
     end
 
     context 'action #push' do
       it 'fails if code is not given' do
         expect {
           worker.push_message(action: :push, worker_name: 'name')
-        }.to raise_error 'No code given'
+        }.to raise_error /No code given/
       end
 
       it 'fails if worker name is not given' do
         expect {
           worker.push_message(action: :push, code: 'code')
-        }.to raise_error 'No worker name given'
+        }.to raise_error /No worker name given/
       end
     end
 
@@ -40,13 +40,13 @@ describe 'loadbalancer' do
       it 'fails if code is not given' do
         expect {
           worker.push_message(action: :stats, stats: 'stats')
-        }.to raise_error 'No master name given'
+        }.to raise_error /No master name given/
       end
 
       it 'fails if worker name is not given' do
         expect {
           worker.push_message(action: :stats, name: 'name')
-        }.to raise_error 'No stats given'
+        }.to raise_error /No stats given/
       end
     end
   end

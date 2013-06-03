@@ -18,4 +18,10 @@ RSpec.configure do |c|
   c.include RRR::TestHelpers
 
   c.mock_with :rspec
+
+  c.before :each do
+    RRR::Amqp::Logger.any_instance.stub(:error) do | message, &block |
+      raise message
+    end
+  end
 end

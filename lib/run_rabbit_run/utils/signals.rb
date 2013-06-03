@@ -18,7 +18,7 @@ module RRR
           return true
         rescue Errno::ESRCH
         rescue Exception => e
-          RRR.logger.error e.message
+          RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
         end
 
         return false

@@ -17,7 +17,7 @@ module RRR
           begin
             worker = eval(worker_code)
           rescue => e
-            raise "worker evaluates with exceptions: #{e.message}"
+            raise e, "worker evaluates with exceptions"
           end
 
           worker_dir = "#{RRR.config[:root]}/tmp/workers/#{RRR.config[:env]}/#{worker.name}"
@@ -48,11 +48,7 @@ module RRR
           end
 
         rescue => e
-          if RRR.config[:env] == 'test'
-            raise e
-          else
-            RRR.logger.error e.message
-          end
+          RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
         end
       end
 
@@ -67,7 +63,7 @@ module RRR
             worker.run
           end
         rescue => e
-          RRR.logger.error e.message
+          RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
         end
       end
 

@@ -15,7 +15,7 @@ module RRR
             master.run
           end
         rescue => e
-          RRR.logger.error e.message
+          RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
         end
       end
 

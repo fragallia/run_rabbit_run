@@ -35,23 +35,11 @@ module RRR
 
         RRR::Amqp.stub(:channel).and_return(channel)
 
-#        RRR::Amqp::Logger.any_instance.stub(:error) do | message, &block |
-#          @logger_messages << [ :error, message ]
-#        end
-#
-#        RRR::Amqp::Logger.any_instance.stub(:info) do | message, &block |
-#          @logger_messages << [ :info, message ]
-#        end
-#
-#        RRR::Amqp::Logger.any_instance.stub(:debug) do | message, &block |
-#          @logger_messages << [ :debug, message ]
-#        end
-#
-#        self.queues.each do | name, queue |
-#          queue.stub(:publish) do | exchange, message, opts, &block |
-#            @sent_messages << { queue: name, message: message }
-#          end
-#        end
+        self.queues.each do | name, queue |
+          queue.stub(:publish) do | exchange, message, opts, &block |
+            @sent_messages << { queue: name, message: message }
+          end
+        end
 
         headers = opts[:headers] || begin
           headers = stub(:headers)
