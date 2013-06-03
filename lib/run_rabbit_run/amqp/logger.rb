@@ -2,71 +2,56 @@ require 'run_rabbit_run/utils/system'
 
 module RRR
   module Amqp
-    class Logger 
-
-      def initialize
-        @queue_name = "#{RRR.config[:env]}.system.log"
-      end
+    class Logger
 
       def info message, &block
-        info_exchange.publish(
-          JSON.generate( message: message ),
-          headers.merge(routing_key: "#{@queue_name}.info"),
-          &block
-        )
+        publish "info", message, &block
       end
 
       def error message, &block
-        error_exchange.publish(
-          JSON.generate( message: message ),
-          headers.merge(routing_key: "#{@queue_name}.error"),
-          &block
-        )
+        publish "error", message, &block
       end
 
       def debug message, &block
-        debug_exchange.publish(
-          JSON.generate( message: message ),
-          headers.merge(routing_key: "#{@queue_name}.debug"),
-          &block
-        )
+        publish "debug", message, &block
       end
 
     private
 
+      def publish type, message, &block
+        send("#{type}_exchange").publish(
+          JSON.generate( message: message ),
+          headers.merge(routing_key: queue_name_for(type)),
+          &block
+        )
+      end
+
       def info_exchange
-        @info_exchange ||= begin
-          exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.log.info", durable: true)
-
-          RRR::Amqp.channel.queue("#{@queue_name}.info", durable: true).bind(exchange)
-
-          exchange
-        end
+        @info_exchange ||= exchange_for "info"
       end
 
       def error_exchange
-        @error_exchange ||= begin
-          exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.log.error", durable: true)
-
-          RRR::Amqp.channel.queue("#{@queue_name}.error", durable: true).bind(exchange)
-
-          exchange
-        end
+        @error_exchange ||= exchange_for "error"
       end
 
       def debug_exchange
-        @debug_exchange ||= begin
-          exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.log.debug", durable: true)
+        @debug_exchange ||= exchange_for "debug"
+      end
 
-          RRR::Amqp.channel.queue("#{@queue_name}.debug", durable: true).bind(exchange)
+      def queue_name_for type
+        "#{RRR.config[:env]}.system.log.#{type}"
+      end
 
-          exchange
-        end
+      def exchange_for type
+        exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.log.#{type}", durable: true)
+
+        RRR::Amqp.channel.queue(queue_name_for(type), durable: true).bind(exchange)
+
+        exchange
       end
 
       def headers
         {
-          routing_key: @queue_name,
           headers: RRR::Amqp.default_headers
         }
       end
