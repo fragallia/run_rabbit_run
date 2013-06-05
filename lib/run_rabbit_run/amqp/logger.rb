@@ -43,7 +43,7 @@ module RRR
       end
 
       def exchange_for type
-        exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.log.#{type}", durable: true)
+        exchange = RRR::Amqp.channel.fanout("#{RRR.config[:env]}.rrr.#{type}", durable: true)
 
         RRR::Amqp.channel.queue(queue_name_for(type), durable: true).bind(exchange)
 

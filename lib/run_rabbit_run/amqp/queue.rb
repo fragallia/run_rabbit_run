@@ -36,8 +36,8 @@ module RRR
         end
       end
 
-      def unsubscribe
-        queue.unsubscribe
+      def unsubscribe opts = {}, &block
+        queue.unsubscribe opts, &block
       end
 
       def status &block
@@ -52,7 +52,7 @@ module RRR
 
     private
       def exchange_for type
-        RRR::Amqp.channel.send(type, "#{RRR.config[:env]}.rrr.#{type}")
+        RRR::Amqp.channel.send(type, '')
       end
 
       def queue
@@ -60,7 +60,7 @@ module RRR
       end
 
       def publish exchange, message, opts = {}, &block
-        queue # defines queue
+        queue
 
         exchange.publish(JSON.generate(message), headers.merge(opts), &block)
       end

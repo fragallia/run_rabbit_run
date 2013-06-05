@@ -34,7 +34,12 @@ module RRR
       end
 
       def stats master_name, stats
-        stats.each do | worker_name, count |
+        stats.values.inject({}) do | res, worker |
+          res[worker['name']] ||= 0
+          res[worker['name']] += 1 if worker['status'] == 'started'
+
+          res
+        end.each do | worker_name, count |
           next unless @workers[worker_name]
           @workers[worker_name].update_stats(master_name, count)
         end

@@ -29,6 +29,13 @@ namespace :rrr do
     Rake::Task["rrr:worker:start"].execute(Rake::TaskArguments.new([:path], [ 'lib/workers' ]))
   end
 
+  desc 'Stops master, resets rabbitmq and boots app'
+  task reload: [ :config ] do | t, args |
+    Rake::Task["rrr:stop"].execute
+    Rake::Task["rrr:reset"].execute
+    Rake::Task["rrr:boot"].execute
+  end
+
   namespace :worker do
     desc 'Sends command to the master to start the worker'
     task :start, [ :path ] => [ :config ] do | t, args |
@@ -41,11 +48,20 @@ namespace :rrr do
         queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true)
 
         send_message = Proc.new do
-          file = files.shift
-          if file
-            puts "Starting [#{file}]"
-            queue.notify( code: File.read(file), &send_message )
-          else
+          begin
+            file = files.shift
+            if file
+              puts "Starting [#{file}]"
+              worker_code = File.read(file)
+              worker      = eval(worker_code)
+              queue.notify( name: worker.name, capacity: worker.processes[:load], code: worker_code, &send_message )
+            else
+              RRR::Amqp.stop(0)
+            end
+          rescue => e
+            puts e.message
+            puts e.backtrace.join("\n")
+
             RRR::Amqp.stop(0)
           end
         end
@@ -94,10 +110,11 @@ namespace :rrr do
     end
 
     desc 'Runs the worker for master'
-    task :run, [ :master_name, :path ] => [ :config ] do | t, args |
-      raise 'Please specify master_name' unless args[:master_name]
+    task :run, [ :master_name, :worker_id, :path ] => [ :config ] do | t, args |
+      raise 'Please specify master_name'    unless args[:master_name]
+      raise 'Please specify worker_id'      unless args[:worker_id]
       raise 'Please specify path to worker' unless args[:path]
-      RRR::Processes::WorkerRunner.start(args[:master_name], args[:path])
+      RRR::Processes::WorkerRunner.start(args[:master_name], args[:worker_id], args[:path])
     end
 
   end

@@ -1,11 +1,11 @@
 RRR::Processes::Worker.run 'system_loadbalancer' do
-  queue :loadbalancer, name: "#{RRR.config[:env]}.system.loadbalancer", durable: true
-  queue :worker_start, name: "#{RRR.config[:env]}.system.worker.start", durable: true
-  queue :worker_stop,  name: "#{RRR.config[:env]}.system.worker.stop", durable: true
+  queue 'loadbalancer', name: "#{RRR.config[:env]}.system.loadbalancer", durable: true
+  queue 'worker_start', name: "#{RRR.config[:env]}.system.worker.start", durable: true
+  queue 'worker_stop',  name: "#{RRR.config[:env]}.system.worker.stop", durable: true
 
   processes max: 1, min: 1, desirable: 1
 
-  subscribe :loadbalancer
+  subscribe 'loadbalancer'
 
   def call headers, payload
     raise 'No action given'      unless payload['action']

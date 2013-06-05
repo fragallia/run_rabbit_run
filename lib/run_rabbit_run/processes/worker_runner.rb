@@ -12,12 +12,12 @@ module RRR
         run_rabbit_run: []
       }
 
-      def build master_name, worker_code
+      def build master_name, worker_id, worker_code
         begin
           begin
             worker = eval(worker_code)
           rescue => e
-            raise e, "worker evaluates with exceptions"
+            raise e
           end
 
           worker_dir = "#{RRR.config[:root]}/tmp/workers/#{RRR.config[:env]}/#{worker.name}"
@@ -44,7 +44,7 @@ module RRR
           raise "bundle install failed: #{output}" unless File.exists?("#{worker_dir}/Gemfile.lock")
 
           Bundler.with_clean_env do
-            output = `cd #{RRR.config[:root]}; BUNDLE_GEMFILE=#{worker_dir}/Gemfile bundle exec rake rrr:worker:run[#{master_name},#{worker_dir}/worker.rb]`
+            output = `cd #{RRR.config[:root]}; BUNDLE_GEMFILE=#{worker_dir}/Gemfile bundle exec rake rrr:worker:run[#{master_name},#{worker_id},#{worker_dir}/worker.rb]`
           end
 
         rescue => e
@@ -52,12 +52,12 @@ module RRR
         end
       end
 
-      def start master_name, file_path
+      def start master_name, worker_id, file_path
         begin
           worker_code = File.read(file_path)
           worker = eval(worker_code)
 
-          report_to_master master_name, worker
+          report_to_master master_name, worker, worker_id
 
           Daemons.run_proc("ruby.rrr.#{worker.name}", RRR.config[:daemons].merge(multiple: true)) do
             worker.run
@@ -77,8 +77,8 @@ module RRR
 
     private
 
-      def report_to_master master_name, worker
-        master = RRR::Amqp::System.new master_name, worker.name
+      def report_to_master master_name, worker, worker_id
+        master = RRR::Amqp::System.new master_name, name: worker.name, worker_id: worker_id
         worker.on_start { master.notify(:started) }
         worker.on_exit  { master.notify(:finished) }
       end

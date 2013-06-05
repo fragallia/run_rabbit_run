@@ -2,6 +2,7 @@ require 'run_rabbit_run/amqp'
 require 'run_rabbit_run/amqp/logger'
 require 'run_rabbit_run/utils/signals'
 require 'run_rabbit_run/utils/system'
+require 'run_rabbit_run/processes/master/workers'
 
 module RRR
   module Processes
@@ -11,20 +12,13 @@ module RRR
         # unique name for the master process
         attr_accessor :name
 
-        # name of the master queue, local workers reports to this queue
-        attr_accessor :queue_name
-
-        # master capacity, that is how many workers master can run
-        attr_accessor :capacity
-
-        # hash with currently running workers
-        attr_accessor :running_workers
+        # keeps statuses of workers
+        attr_accessor :workers
 
         def initialize
-          @capacity = 10
           @name = "master.#{RRR::Utils::System.ip_address}"
-          @queue_name = "#{RRR.config[:env]}.system.#{@name}"
-          @running_workers = {}
+          @workers = RRR::Processes::Master::Workers.new(@name)
+          @stopping = false
         end
 
         def run options = {}
@@ -33,9 +27,10 @@ module RRR
             RRR.logger = RRR::Amqp::Logger.new
 
             listen_to_signals
-            listen_to_workers
-            listen_to_worker_start
-            listen_to_worker_stop
+
+            queues[:master].subscribe &method(:handle_worker_message)
+            queues[:worker_start].subscribe ack: true, &method(:handle_worker_start_message)
+            queues[:worker_stop].subscribe ack: true, &method(:handle_worker_stop_message)
 
             EM.add_periodic_timer(30) do
               send_stats_to_loadbalancer
@@ -44,95 +39,94 @@ module RRR
         end
 
         def stop
-          queue = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true)
-          queue.unsubscribe
+          @stopping = true
+          queues[:worker_start].unsubscribe
 
-          @running_workers.each do | name, pids |
-            pids.each do | pid |
-              RRR::Processes::WorkerRunner.stop(pid)
-            end
-          end
+          @workers.stop_all
+
           # wait to stop all workers
           EM.add_periodic_timer(0.1) do
-            workers_count =  @running_workers.values.inject(0) { |sum, x | sum + x.count }
-            RRR::Amqp.stop if workers_count == 0
+            RRR::Amqp.stop if @workers.running_workers.size == 0
           end
           # kill all running workers and exit after 30 secs
           EM.add_timer(30) do
-            @running_workers.each do | name, pids |
-              pids.each do | pid |
-                RRR::Processes::WorkerRunner.kill(pid)
-              end
-            end
+            @workers.kill_all
             RRR::Amqp.stop
           end
         end
 
       private
 
-        def listen_to_worker_stop
-          queue         = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.stop", durable: true)
-          queue.subscribe( ack: true ) do | headers, payload |
-            if @running_workers[payload['name']] && !@running_workers[payload['name']].empty?
-              RRR::Processes::WorkerRunner.stop(@running_workers[payload['name']].shift)
-
-              headers.ack
-            else
-              if headers.delivery_tag > 100
-                RRR.logger.error "Worker stop failed [#{headers.headers['name']}][#{headers.headers['ip']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
-                headers.reject
-              else
-                headers.reject requeue: true
-              end
-            end
-
-          end
+        def queues
+          @queues ||= {
+            worker_start: RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true),
+            worker_stop:  RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.stop", durable: true),
+            loadbalancer: RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.loadbalancer", durable: true),
+            master:       RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.#{@name}", auto_delete: true),
+          }
         end
 
-        def listen_to_worker_start
-          queue         = RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.worker.start", durable: true)
-          queue.subscribe( ack: true ) do | headers, payload |
-            if @capacity > 0
-              RRR::Processes::WorkerRunner.build(name, payload['code'])
-
-              headers.ack
+        def handle_worker_stop_message headers, payload
+          if @workers.stop payload['name']
+            headers.ack
+          else
+            if headers.delivery_tag > 1000
+              RRR.logger.error "Worker stop failed [#{headers.headers['name']}][#{headers.headers['ip']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
+              headers.reject
             else
               headers.reject requeue: true
-              queue.unsubscribe
             end
-
           end
         end
 
-        def listen_to_workers
-          queue = RRR::Amqp::Queue.new(@queue_name, auto_delete: true)
-          queue.subscribe do | headers, payload |
-            RRR.logger.info "master got message from [#{headers.headers['name']}][#{headers.headers['ip']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
+        def handle_worker_start_message headers, payload
+          if @stopping
+            headers.reject requeue: true
+          else
+            begin
+              raise "No worker name given #{headers.headers.inspect}, #{payload.inspect}" unless payload['name']
+              raise "No capacity given #{headers.headers.inspect}, #{payload.inspect}"    unless payload['capacity']
+              raise "No code given #{headers.headers.inspect}, #{payload.inspect}"        unless payload['code']
 
+              if @workers.create(payload['name'], payload['code'], payload['capacity'])
+                headers.ack
+              else
+                queues[:worker_start].unsubscribe nowait: false do
+                  headers.reject requeue: true
+                  RRR.logger.error "Worker can\'t be run, capacity exceeded #{payload.inspect}"
+                end
+              end
+            rescue => e
+              RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
+              headers.reject
+            end
+          end
+        end
+
+        def handle_worker_message headers, payload
+          RRR.logger.info "master got message from [#{headers.headers['name']}][#{headers.headers['ip']}][#{headers.headers['pid']}] with [#{payload.inspect}]"
+
+          begin
             case payload['message'].to_sym
             when :started
-              if headers.headers['name'] && headers.headers['pid']
-                @running_workers[headers.headers['name']] ||= []
-                @running_workers[headers.headers['name']] << headers.headers['pid']
-
-                send_stats_to_loadbalancer
-              end
+              @workers.started headers.headers['worker_id'], headers.headers['pid'], headers.headers['created_at']
             when :finished
-              if headers.headers['name'] && headers.headers['pid']
-                @running_workers[headers.headers['name']].delete(headers.headers['pid']) if @running_workers[headers.headers['name']]
-
-                send_stats_to_loadbalancer
+              @workers.finished headers.headers['worker_id']
+              begin
+                queues[:worker_start].subscribe ack: true, &method(:handle_worker_start_message)
+              rescue
+                # if already subscribed
               end
             end
+
+            send_stats_to_loadbalancer
+          rescue => e
+            RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
           end
         end
 
         def send_stats_to_loadbalancer
-          RRR::Amqp::Queue.new("#{RRR.config[:env]}.system.loadbalancer", durable: true).notify({
-            action: :stats,
-            stats: @running_workers.inject({}) { | res, item |  res[item[0]] = item[1].count; res },
-            name: name
-          })
+          queues[:loadbalancer].notify({ action: :stats, stats: @workers.stats, name: name })
         end
 
         def listen_to_signals

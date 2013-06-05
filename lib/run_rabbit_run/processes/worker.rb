@@ -39,7 +39,7 @@ module RRR
                         :on_message_received,
                         :on_message_processed
 
-        attr_accessor :name
+        attr_accessor :name, :worker_id
 
         def initialize(name)
           @name = name
@@ -51,7 +51,7 @@ module RRR
           raise 'You need to define call method' unless methods.include?(:call)
         end
 
-        def run options = {}
+        def run
           raise 'Please define the queue subscribe to' if @subscribe && (!queues || (queues && !queues[@subscribe[:queue]]))
 
           EM.run do

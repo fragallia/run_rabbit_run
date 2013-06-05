@@ -24,7 +24,7 @@ describe 'worker' do
       exchange.should_receive(:publish).with("{\"message\":\"finished\"}", master_default_headers)
 
       Timecop.freeze(Time.local(2000)) do
-        RRR::Processes::WorkerRunner.start 'master.1', path_to_worker_file
+        RRR::Processes::WorkerRunner.start 'master.1', 1, path_to_worker_file
       end
     end
   end
@@ -50,7 +50,7 @@ describe 'worker' do
       RRR::Processes::WorkerRunner.should_receive(:`).with(/bundle install/).once
       RRR::Processes::WorkerRunner.should_receive(:`).with(/bundle exec/).once
 
-      RRR::Processes::WorkerRunner.build :master, worker_code
+      RRR::Processes::WorkerRunner.build :master, 1, worker_code
 
       File.read("#{RRR.config[:root]}/tmp/workers/test/worker_name/worker.rb").should == worker_code
       File.read("#{RRR.config[:root]}/tmp/workers/test/worker_name/Gemfile").should   == <<-EOS
@@ -66,16 +66,16 @@ gem 'sinatra', {:git=>"git://github.com/sinatra/sinatra.git"}
     context 'validations' do
       it 'raises exception if worker code evaluates with exception' do
         expect {
-          RRR::Processes::WorkerRunner.build 'master', <<-EOS
+          RRR::Processes::WorkerRunner.build 'master', 1, <<-EOS
             RRR::Processes::Worker.run 'worker_name' do
               add_dependency 'some-unreal-gem-name'
             end
           EOS
-        }.to raise_error(/worker evaluates with exceptions/)
+        }.to raise_error(/You need to define call method/)
       end
       it 'raises exception if bundle install failed' do
         expect {
-          RRR::Processes::WorkerRunner.build 'master', <<-EOS
+          RRR::Processes::WorkerRunner.build 'master', 1, <<-EOS
             RRR::Processes::Worker.run 'worker_name' do
               add_dependency 'some-unreal-gem-name'
               queue :input

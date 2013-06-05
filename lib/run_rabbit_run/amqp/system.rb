@@ -1,14 +1,14 @@
 module RRR
   module Amqp
     class System 
-      def initialize master_name, worker_name
+      def initialize master_name, worker_options
         @master_name       = master_name
-        @worker_name       = worker_name
+        @worker_options    = worker_options
         @master_queue_name = "#{RRR.config[:env]}.system.#{@master_name}"
       end
 
       def notify message, &block
-        RRR::Amqp.channel.direct("#{RRR.config[:env]}.rrr.direct").publish(
+        RRR::Amqp.channel.direct('').publish(
           JSON.generate( message: message ),
           options.merge({ headers: headers }),
           &block
@@ -25,7 +25,7 @@ module RRR
       end
 
       def headers
-        RRR::Amqp.default_headers.merge({ name: @worker_name, })
+        RRR::Amqp.default_headers.merge(@worker_options)
       end
 
     end

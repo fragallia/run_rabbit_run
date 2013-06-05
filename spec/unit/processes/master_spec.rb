@@ -7,7 +7,6 @@ describe 'master' do
     master = RRR::Processes::Master::Base.new
 
     master.name.should       == "master.1.1.1.1"
-    master.queue_name.should == "test.system.master.1.1.1.1"
   end
 
   context '#RRR::Processes::Master.run' do
@@ -26,11 +25,8 @@ describe 'master' do
     it 'listens to the signals' do
       master = RRR::Processes::Master::Base.new
 
-      master.stub(:listen_to_worker_start)
-      master.stub(:listen_to_worker_stop)
-      master.stub(:listen_to_workers)
-
       queue.stub(:unsubscribe)
+      queue.stub(:subscribe)
       Signal.should_receive(:trap).with(RRR::Utils::Signals::QUIT)
       Signal.should_receive(:trap).with(RRR::Utils::Signals::INT)
       Signal.should_receive(:trap).with(RRR::Utils::Signals::TERM)
@@ -45,11 +41,13 @@ describe 'master' do
     it 'creates and subscribes to the master queue' do
       master = RRR::Processes::Master::Base.new
 
-      master.stub(:listen_to_worker_start)
-      master.stub(:listen_to_worker_stop)
+      channel.should_receive(:queue).with("test.system.#{master.name}", auto_delete: true).and_return(queue)
+      channel.should_receive(:queue).with("test.system.worker.start", durable: true).and_return(queue)
+      channel.should_receive(:queue).with("test.system.worker.stop", durable: true).and_return(queue)
 
-      channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
-      queue.should_receive(:subscribe)
+      queue.should_receive(:subscribe).with({})
+      queue.should_receive(:subscribe).with(ack: true)
+      queue.should_receive(:subscribe).with(ack: true)
 
       em do
         master.run
@@ -59,183 +57,149 @@ describe 'master' do
     end
 
     context 'workers' do
-      it 'subscribes to the system.env.worker.start queue' do
-        master = RRR::Processes::Master::Base.new
-
-        master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_stop)
-
-        channel.should_receive(:queue).with('test.system.worker.start', durable: true).and_return(queue)
-        queue.should_receive(:subscribe).with( ack: true )
-
-        em do
-          master.run
-
-          done
-        end
-      end
-
       it 'runs worker wenn TIME COMES' do
         master = RRR::Processes::Master::Base.new
 
-        master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_stop)
+        RRR::Processes::WorkerRunner.should_receive(:build).with(master.name, 1, 'worker code')
 
-        channel.should_receive(:queue).with('test.system.worker.start', durable: true).and_return(queue)
-        queue.
-          should_receive(:subscribe).
-          with( ack: true ).
-          and_yield(stub(:headers, ack: 'something'), JSON.generate(code: 'worker code'))
-
-        RRR::Processes::WorkerRunner.should_receive(:build).with(master.name, 'worker code')
-
-        em do
-          master.run
-
-          done
-        end
+        master.send(
+          :handle_worker_start_message,
+          stub(:headers, ack: 'something'),
+          { 'name' => 'name', 'capacity' => 10, 'code' => 'worker code' }
+        )
       end
 
       it 'rejects message and unsubscribes from the queue if capacity is reached' do
         master = RRR::Processes::Master::Base.new
 
-        master.capacity = 0
-
-        master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_stop)
+        master.workers.capacity = 0
 
         headers = stub(:headers)
-        channel.should_receive(:queue).with('test.system.worker.start', durable: true).once.and_return(queue)
-        queue.
-          should_receive(:subscribe).
-          with( ack: true ).
-          and_yield(headers, JSON.generate(code: 'worker code'))
-
         headers.should_receive(:reject).with( requeue: true )
-        queue.should_receive(:unsubscribe)
+        queue.should_receive(:unsubscribe).and_yield
 
-        em do
-          master.run
-
-          done
-        end
+        expect {
+          master.send(
+            :handle_worker_start_message,
+            headers,
+            { 'name' => 'name', 'capacity' => 10, 'code' => 'worker code' }
+          )
+        }.to raise_error /Worker can't be run, capacity exceeded/
       end
 
       it 'stops worker' do
         master = RRR::Processes::Master::Base.new
 
-        master.running_workers = { 'name' => [1111, 22222] }
+        master.workers.should_receive(:stop).with('name').and_return('worker')
 
-        master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_start)
-
-        channel.should_receive(:queue).with('test.system.worker.stop', durable: true).and_return(queue)
-        queue.
-          should_receive(:subscribe).
-          with( ack: true ).
-          and_yield(stub(:headers, ack: 'something'), JSON.generate(name: 'name'))
-
-        RRR::Processes::WorkerRunner.should_receive(:stop).with(1111)
-
-        em do
-          master.run
-
-          done
-        end
+        master.send(
+          :handle_worker_stop_message,
+          stub(:headers, ack: 'something'),
+          { 'name' => 'name' }
+        )
       end
 
       it 'rejects message is there no worker with this name' do
-
         master = RRR::Processes::Master::Base.new
 
-        master.stub(:listen_to_workers)
-        master.stub(:listen_to_worker_start)
-
         headers = stub(:headers)
-        channel.should_receive(:queue).with('test.system.worker.stop', durable: true).and_return(queue)
-        queue.
-          should_receive(:subscribe).
-          with( ack: true ).
-          and_yield(headers, JSON.generate(code: 'worker code'))
-
         headers.should_receive(:delivery_tag).and_return(1)
         headers.should_receive(:reject).with( requeue: true )
 
-        em do
-          master.run
-
-          done
-        end
+        master.send(
+          :handle_worker_stop_message,
+          headers,
+          { 'name' => 'name' }
+        )
      end
 
       context 'worker messages' do
         it 'checks if the worker is started and saves it' do
           master = RRR::Processes::Master::Base.new
 
-          master.stub(:listen_to_worker_start)
-          master.stub(:listen_to_worker_stop)
+          RRR::Processes::WorkerRunner.stub(:build)
 
           RRR::Amqp::Logger.any_instance.stub(:info)
-          headers = stub(:headers, headers: { 'name' => 'worker_name', 'pid' => 1111 } )
-          channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
-          channel.should_receive(:queue).with('test.system.loadbalancer', durable: true).and_return(queue)
-          queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :started))
+          headers = stub(:headers, headers: { 'worker_id' => 1, 'name' => 'worker_name', 'pid' => 1111, 'created_at' => 2012 } )
 
           exchange = stub(:exchange)
-          channel.should_receive(:direct).with('test.rrr.direct').and_return(exchange)
-          exchange.should_receive(:publish).with("{\"action\":\"stats\",\"stats\":{\"worker_name\":1},\"name\":\"master.1.1.1.1\"}", {
-            routing_key: "test.system.loadbalancer",
-            headers: {
-              created_at: Time.local(2000).to_f,
-              pid: Process.pid,
-              ip: "1.1.1.1"
+          channel.should_receive(:direct).with('').and_return(exchange)
+          exchange.should_receive(:publish) do | message, options, &block |
+            JSON.parse(message).should == {
+              'action' => 'stats',
+              'stats'  => {
+                '1' => {
+                  'id' => 1,
+                  'name' => 'worker_name',
+                  'status' => 'started',
+                  'capacity' => 10,
+                  'created_at' => Time.local(2000).to_f,
+                  'pid' => 1111,
+                  'started_at' => 2012
+                }
+              },
+              'name' => 'master.1.1.1.1'
             }
-          })
+            options.should == {
+              routing_key: "test.system.loadbalancer",
+              headers: {
+                created_at: Time.local(2000).to_f,
+                pid: Process.pid,
+                ip: "1.1.1.1"
+              }
+            }
+          end
 
           Timecop.freeze(Time.local(2000)) do
-            em do
-              master.run
-
-              master.running_workers.should == { 'worker_name' => [ 1111 ] }
-
-              done
-            end
+            master.workers.create 'worker_name', 'code', 10
+            master.send(
+              :handle_worker_message,
+              headers,
+              { 'message' => 'started' }
+            )
           end
         end
 
         it 'checks if the worker is finished and removes it' do
           master = RRR::Processes::Master::Base.new
 
-          master.running_workers = { 'worker_name' => [1111, 22222] }
-
           master.stub(:listen_to_worker_start)
           master.stub(:listen_to_worker_stop)
 
+          RRR::Processes::WorkerRunner.stub(:build)
           RRR::Amqp::Logger.any_instance.stub(:info)
-          headers = stub(:headers, headers: { 'name' => 'worker_name', 'pid' => 1111 } )
-          channel.should_receive(:queue).with(master.queue_name, auto_delete: true).and_return(queue)
-          channel.should_receive(:queue).with('test.system.loadbalancer', durable: true).and_return(queue)
-          queue.should_receive(:subscribe).and_yield(headers, JSON.generate(message: :finished))
+
+          queue.stub(:subscribe)
+
+          headers = stub(:headers, headers: { 'worker_id' => 1, 'name' => 'worker_name', 'pid' => 1111 } )
 
           exchange = stub(:exchange)
-          channel.should_receive(:direct).with('test.rrr.direct').and_return(exchange)
-          exchange.should_receive(:publish).with("{\"action\":\"stats\",\"stats\":{\"worker_name\":1},\"name\":\"master.1.1.1.1\"}", {
-            routing_key: "test.system.loadbalancer",
-            headers: {
-              created_at: Time.local(2000).to_f,
-              pid: Process.pid,
-              ip: "1.1.1.1"
+          channel.should_receive(:direct).with('').and_return(exchange)
+          exchange.should_receive(:publish) do | message, options, &block |
+            JSON.parse(message).should == {
+              'action' => 'stats',
+              'stats'  => {},
+              'name' => 'master.1.1.1.1'
             }
-          })
+            options.should == {
+              routing_key: "test.system.loadbalancer",
+              headers: {
+                created_at: Time.local(2000).to_f,
+                pid: Process.pid,
+                ip: "1.1.1.1"
+              }
+            }
+          end
 
           Timecop.freeze(Time.local(2000)) do
-            em do
-              master.run
+            master.workers.create 'worker_name', 'code', 10
+            master.workers.started 1, 1111, 2012
 
-              master.running_workers.should == { 'worker_name' => [ 22222 ] }
-
-              done
-            end
+            master.send(
+              :handle_worker_message,
+              headers,
+              { 'message' => 'finished' }
+            )
           end
         end
       end

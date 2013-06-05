@@ -17,7 +17,7 @@ module RRR
         #workers with subscription will be run automatically
         unless worker.subscribable?
           worker.processes[:min].times do | index |
-            queues[:worker_start].notify name: name, code: code
+            queues['worker_start'].notify name: name, code: code, capacity: worker.processes[:load]
           end
         end
       end
@@ -26,7 +26,7 @@ module RRR
         @stopping = true
 
         @stats.number_of_consumers.times do | index |
-          queues[:worker_stop].notify name: name
+          queues['worker_stop'].notify name: name
         end
       end
 
@@ -41,7 +41,7 @@ module RRR
           worker.queues[worker.subscribed_to].status do | number_of_messages, number_of_active_consumers |
             @stats.push(number_of_messages)
 
-            puts "timeout: stopping:[#{@stopping}] can_scale[#{can_scale?}] average:[#{@stats.average}] messages:[#{number_of_messages}] consumers:[#{@stats.number_of_consumers}]"
+            puts "average messages per worker:[#{@stats.average}] messages:[#{number_of_messages}] consumers:[#{@stats.number_of_consumers}]"
           end
         end
       end
@@ -50,10 +50,10 @@ module RRR
         case direction.to_sym
         when :up
           number_of_processes_to_scale_up.times do | i | 
-            queues[:worker_start].notify name: name, code: code
+            queues['worker_start'].notify name: name, code: code, capacity: worker.processes[:load]
           end
         when :down
-          queues[:worker_stop].notify name: name
+          queues['worker_stop'].notify name: name
         else
           raise "Can't scale to #{direction}"
         end
