@@ -17,6 +17,10 @@ module RRR
       def number_of_consumers name
         workers.values.inject(0) { | sum, worker | worker['status'] == 'started' && worker['name'] == name ? sum + 1 : sum }
       end
+
+      def capacity
+        workers.values.inject(0) { | sum, worker | ['started', 'create'].include?(worker['status']) ? sum + worker['capacity'] : sum }
+      end
     end
   end
 end

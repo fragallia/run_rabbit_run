@@ -24,6 +24,19 @@ module RRR
 
       def scale
         @workers.each { | name, worker | worker.check_for_scale }
+
+        capacity_available = @masters.size * 100
+        capacity_used      = @masters.values.inject(0) { | sum, master | sum + master.capacity }
+
+        if capacity_used + RRR.config[:reserved_capacity] > capacity_available
+          #TODO server need to scale up
+        elsif capacity_used + RRR.config[:reserved_capacity] > capacity_available - 100
+          #TODO server need to scale down
+          # if there is master free
+          #   then shutdown the server
+          # else
+          #   move around the workers to free one master to scale down
+        end 
       end
 
       def stats master_name, stats

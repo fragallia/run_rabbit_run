@@ -6,11 +6,12 @@ module RRR
 
     def load(root)
       @options = {
-        root:     root,
-        env:      (ENV['RACK_ENV'] || ENV['RAILS_ENV'] || 'development'),
-        pid:      "#{root}/tmp/pids",
-        log:      "#{root}/log",
-        rabbitmq: {}
+        root:              root,
+        env:               (ENV['RACK_ENV'] || ENV['RAILS_ENV'] || 'development'),
+        pid:               "#{root}/tmp/pids",
+        log:               "#{root}/log",
+        reserved_capacity: 0,
+        rabbitmq:          {}
 
       }
 
@@ -30,6 +31,10 @@ module RRR
 
     def options
       @options ||= {}
+    end
+
+    def reserved_capacity value
+      options[:reserved_capacity] = value.to_i
     end
 
     def pid value
