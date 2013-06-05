@@ -73,6 +73,7 @@ gem 'sinatra', {:git=>"git://github.com/sinatra/sinatra.git"}
           EOS
         }.to raise_error(/You need to define call method/)
       end
+
       it 'raises exception if bundle install failed' do
         expect {
           RRR::Processes::WorkerRunner.build 'master', 1, <<-EOS

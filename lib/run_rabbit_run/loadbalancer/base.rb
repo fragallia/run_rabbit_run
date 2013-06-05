@@ -36,7 +36,7 @@ module RRR
       def stats master_name, stats
         stats.values.inject({}) do | res, worker |
           res[worker['name']] ||= 0
-          res[worker['name']] += 1 if worker['status'] == 'started'
+          res[worker['name']] += 1 if ['create', 'started'].include? worker['status']
 
           res
         end.each do | worker_name, count |

@@ -1,4 +1,5 @@
 require 'run_rabbit_run/utils/signals'
+require 'run_rabbit_run/processes/master/worker'
 
 module RRR
   module Processes
@@ -13,42 +14,35 @@ module RRR
         end
 
         def stop_all
-          running_workers.each do | worker |
-            RRR::Processes::WorkerRunner.stop(worker[:pid]) if worker[:status] == :started
-          end
+          running_workers.each(&:stop)
         end
 
         def stop name
-          worker = running_workers.find { | worker | worker[:name] == name && worker[:status] == :started }
-
-          if worker
-            worker[:status]     = :removing
-            worker[:removed_at] = Time.now.to_i
-            RRR::Processes::WorkerRunner.stop(worker[:pid])
-          
-            worker
+          worker = running_workers.find do | worker |
+            worker.name == name && worker.status == RRR::Processes::Master::Worker::STATUS_STARTED
           end
+          worker.stop if worker
+          
+          worker
         end
 
         def kill_all
-          running_workers.each do | worker |
-            RRR::Processes::WorkerRunner.kill(worker[:pid])
-          end
+          running_workers.each(&:kill)
         end
 
         def create name, code, capacity
           if @capacity - capacity >= 0
             worker_id = (@workers.keys.max || 0) + 1
 
-            RRR::Processes::WorkerRunner.build(@master_name, worker_id, code)
+            @workers[worker_id] = RRR::Processes::Master::Worker.new({
+              id:          worker_id,
+              name:        name,
+              master_name: @master_name,
+              capacity:    capacity,
+              code:        code
+            })
 
-            @workers[worker_id] = {
-              id:         worker_id,
-              name:       name,
-              status:     :create,
-              capacity:   capacity,
-              created_at: Time.now.to_i,
-            }
+            @workers[worker_id].start
 
             @capacity -= capacity
    
@@ -59,9 +53,7 @@ module RRR
         def started worker_id, pid, created_at
           worker = @workers[worker_id.to_i]
           if worker
-            worker[:status]     = :started
-            worker[:pid]        = pid
-            worker[:started_at] = created_at
+            worker.started pid, created_at
           else
             raise 'Worker not exists'
           end
@@ -70,14 +62,14 @@ module RRR
         def finished worker_id
           worker = @workers.delete(worker_id.to_i)
           if worker
-            @capacity += worker[:capacity]
+            @capacity += worker.capacity
           else
             raise 'Worker not exists'
           end
         end
 
         def running_workers
-          @workers.values.select { | worker | !worker[:pid].nil? }
+          @workers.values.select { | worker | worker.running? }
         end
 
         def stats

@@ -132,9 +132,11 @@ describe 'master' do
                   'id' => 1,
                   'name' => 'worker_name',
                   'status' => 'started',
+                  'master_name' => 'master.1.1.1.1',
                   'capacity' => 10,
                   'created_at' => Time.local(2000).to_f,
                   'pid' => 1111,
+                  'stopped_at' => nil,
                   'started_at' => 2012
                 }
               },
