@@ -1,4 +1,5 @@
 require 'run_rabbit_run/loadbalancer/worker'
+require 'run_rabbit_run/loadbalancer/master'
 
 module RRR
   module Loadbalancer
@@ -6,9 +7,9 @@ module RRR
       attr_accessor :workers
 
       def initialize queues
-        @workers        = {}
-        @master_updates = {}
         @queues         = queues
+        @masters        = {}
+        @workers        = {}
       end
 
       def push worker_name, code
@@ -18,43 +19,38 @@ module RRR
       end
 
       def check_status
-        @workers.each { | name, worker | worker.check_status }
+        @workers.each { | name, worker | worker.check_for_status }
       end
 
       def scale
-        @workers.each do | name, worker |
-          if worker.can_scale?
-            if worker.has_to_scale_up?
-              worker.scale :up
-            elsif worker.has_to_scale_down?
-              worker.scale :down
-            end
-          end
-        end
+        @workers.each { | name, worker | worker.check_for_scale }
       end
 
       def stats master_name, stats
-        stats.values.inject({}) do | res, worker |
-          res[worker['name']] ||= 0
-          res[worker['name']] += 1 if ['create', 'started'].include? worker['status']
+        @masters[master_name] ||= RRR::Loadbalancer::Master.new(master_name)
+        @masters[master_name].update stats
 
-          res
-        end.each do | worker_name, count |
-          next unless @workers[worker_name]
-          @workers[worker_name].update_stats(master_name, count)
-        end
-
-        @master_updates[master_name] = Time.now.to_i
+        update_number_of_consumers
       end
 
       def check_masters
         time_now = Time.now.to_i
-        @master_updates.each do | master_name, time |
-          if time + 60 < time_now
-            @master_updates.delete(master_name)
-            @workers.each { | worker_name, worker | worker.update_stats(master_name, 0) }
+        @masters.each do | name, master |
+          if master.updated_at + 60 < time_now
+            @masters.delete(name)
+            update_number_of_consumers
           end
         end
+      end
+
+      def update_number_of_consumers
+        @workers.each do | worker_name, worker |
+          worker.number_of_consumers = number_of_consumers worker_name
+        end
+      end
+
+      def number_of_consumers worker_name
+        @masters.values.inject(0) { | sum, master | sum + master.number_of_consumers(worker_name) }
       end
     end
   end

@@ -3,57 +3,77 @@ require 'run_rabbit_run/loadbalancer/worker_stats'
 module RRR
   module Loadbalancer
     class Worker 
-      attr_accessor :name, :code, :worker, :queues
+      attr_accessor :name, :code, :worker, :queues, :number_of_consumers
 
       def initialize name, queues
         @name, @queues = name, queues
 
+        @stopping = false
+        @number_of_consumers = 0
+        @consumers_requested = 0
         @timeout = 0
         @stats   = RRR::Loadbalancer::WorkerStats.new
       end
 
+      def number_of_consumers= value
+        @stopping = false if value == 0
+
+        @number_of_consumers = value
+      end
+
       def reload
-        stop unless @stats.number_of_consumers == 0
+        stop
+        start
+      end
+
+      def start
         #workers with subscription will be run automatically
-        unless worker.subscribable?
-          worker.processes[:min].times do | index |
-            queues['worker_start'].notify name: name, code: code, capacity: worker.processes[:load]
-          end
-        end
+        scale :up, worker.processes[:min] unless worker.subscribable?
       end
 
       def stop
-        @stopping = true
-
-        @stats.number_of_consumers.times do | index |
-          queues['worker_stop'].notify name: name
+        if number_of_consumers > 0
+          @stopping = true
+          scale :down, number_of_consumers
         end
       end
 
-      def update_stats master_name, count
-        @stats.update_number_of_consumers(master_name, count)
-
-        @stopping = false if @stopping && @stats.number_of_consumers == 0
-      end
-
-      def check_status
+      def check_for_status
         if worker.subscribable?
           worker.queues[worker.subscribed_to].status do | number_of_messages, number_of_active_consumers |
             @stats.push(number_of_messages)
 
-            puts "average messages per worker:[#{@stats.average}] messages:[#{number_of_messages}] consumers:[#{@stats.number_of_consumers}]"
+            puts "average messages:[#{@stats.average/(number_of_consumers > 0 ? number_of_consumers : 1)}] messages:[#{number_of_messages}] consumers:[#{number_of_consumers}]"
           end
         end
       end
 
-      def scale direction
+      def check_for_scale
+        if can_scale?
+          if has_to_scale_up?
+            count = number_of_consumers + number_of_processes_to_scale_up - @consumers_requested
+
+            scale :up, count if count > 0
+          elsif has_to_scale_down?
+            scale :down      if number_of_consumers <= @consumers_requested
+          end
+        end
+      end
+
+      def scale direction, count = 1
         case direction.to_sym
         when :up
-          number_of_processes_to_scale_up.times do | i | 
+          count.times do | i | 
             queues['worker_start'].notify name: name, code: code, capacity: worker.processes[:load]
+
+            @consumers_requested += 1
           end
         when :down
-          queues['worker_stop'].notify name: name
+          count.times do | i | 
+            queues['worker_stop'].notify name: name
+
+            @consumers_requested -= 1
+          end
         else
           raise "Can't scale to #{direction}"
         end
@@ -72,30 +92,30 @@ module RRR
       end
 
       def has_to_scale_up?
-        @stats.number_of_consumers < worker.processes[:min] ||
+        number_of_consumers < worker.processes[:min] ||
         (
-          worker.processes[:capacity] < @stats.average &&
-          @stats.number_of_consumers < worker.processes[:max]
+          worker.processes[:capacity]*number_of_consumers < @stats.average &&
+          number_of_consumers < worker.processes[:max]
         )
       end
 
       def has_to_scale_down?
-        (@stats.number_of_consumers - 1) * worker.processes[:capacity] > ( @stats.number_of_consumers * @stats.average) &&
-        @stats.number_of_consumers > worker.processes[:min]
+        (number_of_consumers - 1) * worker.processes[:capacity] > @stats.average &&
+        number_of_consumers > worker.processes[:min]
       end
 
       def number_of_processes_to_scale_up
-        if @stats.number_of_consumers < worker.processes[:min]
-          return worker.processes[:min] - @stats.number_of_consumers
+        if number_of_consumers < worker.processes[:min]
+          return worker.processes[:min] - number_of_consumers
         end
 
-        if @stats.number_of_consumers < worker.processes[:desirable]
-          return worker.processes[:desirable] - @stats.number_of_consumers
+        if number_of_consumers < worker.processes[:desirable]
+          return worker.processes[:desirable] - number_of_consumers
         end
 
-        workers_needed = @stats.average/worker.processes[:capacity]
-        if @stats.number_of_consumers + workers_needed > worker.processes[:max]
-          return worker.processes[:max] - @stats.number_of_consumers
+        workers_needed = @stats.average/worker.processes[:capacity] - number_of_consumers
+        if number_of_consumers + workers_needed > worker.processes[:max]
+          return worker.processes[:max] - number_of_consumers
         end
 
         workers_needed

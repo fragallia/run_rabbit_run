@@ -23,7 +23,7 @@ describe 'loadbalancer base' do
     loadbalancer.push('worker_name1', 'code') 
     loadbalancer.push('worker_name2', 'code') 
 
-    worker.should_receive(:check_status).twice
+    worker.should_receive(:check_for_status).twice
 
     loadbalancer.check_status
   end
