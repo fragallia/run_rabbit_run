@@ -4,6 +4,7 @@ require 'run_rabbit_run/amqp/logger'
 require 'run_rabbit_run/processes/worker/queues'
 require 'run_rabbit_run/processes/worker/subscribe'
 require 'run_rabbit_run/processes/worker/processes'
+require 'run_rabbit_run/processes/worker/settings'
 require 'run_rabbit_run/processes/worker/add_dependency'
 require 'run_rabbit_run/utils/callbacks'
 require 'run_rabbit_run/utils/signals'
@@ -25,6 +26,7 @@ module RRR
       end
 
       class Base
+        include RRR::Processes::Worker::Settings
         include RRR::Processes::Worker::Processes
         include RRR::Processes::Worker::Queues
         include RRR::Processes::Worker::Subscribe
@@ -55,7 +57,7 @@ module RRR
           raise 'Please define the queue subscribe to' if @subscribe && (!queues || (queues && !queues[@subscribe[:queue]]))
 
           EM.run do
-            RRR::Amqp.channel.prefetch processes[:prefetch]
+            RRR::Amqp.channel.prefetch settings[:prefetch]
             RRR.logger = RRR::Amqp::Logger.new
 
             on_error do | e, data |

@@ -3,8 +3,6 @@ RRR::Processes::Worker.run 'system_loadbalancer' do
   queue 'worker_start', name: "#{RRR.config[:env]}.system.worker.start", durable: true
   queue 'worker_stop',  name: "#{RRR.config[:env]}.system.worker.stop", durable: true
 
-  processes max: 1, min: 1, desirable: 1
-
   subscribe 'loadbalancer'
 
   def call headers, payload

@@ -9,7 +9,8 @@ require 'spec_helper'
 #  #adapter :redis, RRR::RedisAdapter
 #  #adapter :mongo, RRR::MongoDbAdapter
 #
-#  processes max: 5, min: 1, desirable: 3, capacity: 10, prefetch: 3
+#  processes max: 5, min: 1, desirable: 3
+#  settings  queue_size: 250, capacity: 10, prefetch: 3
 #
 #  queue :output, durable: true
 #  queue :input, durable: true

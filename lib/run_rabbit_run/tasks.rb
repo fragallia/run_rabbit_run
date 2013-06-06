@@ -54,7 +54,7 @@ namespace :rrr do
               puts "Starting [#{file}]"
               worker_code = File.read(file)
               worker      = eval(worker_code)
-              queue.notify( name: worker.name, capacity: worker.processes[:load], code: worker_code, &send_message )
+              queue.notify( name: worker.name, capacity: worker.settings[:capacity], code: worker_code, &send_message )
             else
               RRR::Amqp.stop(0)
             end

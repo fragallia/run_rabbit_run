@@ -3,9 +3,9 @@ module RRR
     module Worker
       module Processes
         def processes options = {}
-          @processes ||= { max: 1, min: 1, desirable: 1, capacity: 250, prefetch: 10, load: 10 }
+          @processes ||= { max: 1, min: 1, desirable: 1 }
           unless options.empty?
-            @processes = @processes.merge(options) unless options.empty?
+            @processes = @processes.merge(options)
 
             @processes[:max]       = @processes[:min] if !options[:max] && options[:min]
             @processes[:desirable] = @processes[:min] if !options[:desirable] && options[:min]
@@ -19,13 +19,9 @@ module RRR
       private
 
         def validate_processes
-          raise 'Load can\'t be zero or less'                    if @processes[:load] <= 0
-          raise 'Load can\'t be bigger than 100'                 if @processes[:load] > 100
           raise 'Max processes count cannot be smaller than min' if @processes[:max] < @processes[:min]
           raise 'Desirable processes cannot be bigger than max'  if @processes[:desirable] > @processes[:max]
           raise 'Desirable processes cannot be smaller than min' if @processes[:desirable] < @processes[:min]
-          raise 'Prefetch cannot be smaller than 1'              if @processes[:prefetch] < 1
-          raise 'Capacity cannot be smaller than 1'              if @processes[:capacity] < 1
         end
       end
     end

@@ -63,7 +63,7 @@ module RRR
             worker.run
           end
         rescue => e
-          RRR.logger.error "#{e.message},\n#{e.backtrace.join("\n")}"
+          puts "#{e.message},\n#{e.backtrace.join("\n")}"
         end
       end
 

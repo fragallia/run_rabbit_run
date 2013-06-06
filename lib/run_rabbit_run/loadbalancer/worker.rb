@@ -50,11 +50,11 @@ module RRR
 
       def check_for_scale
         if can_scale?
-          if has_to_scale_up?
+          if scale_up?
             count = number_of_consumers + number_of_processes_to_scale_up - @consumers_requested
 
             scale :up, count if count > 0
-          elsif has_to_scale_down?
+          elsif cale_down?
             scale :down      if number_of_consumers <= @consumers_requested
           end
         end
@@ -64,7 +64,7 @@ module RRR
         case direction.to_sym
         when :up
           count.times do | i | 
-            queues['worker_start'].notify name: name, code: code, capacity: worker.processes[:load]
+            queues['worker_start'].notify name: name, code: code, capacity: worker.settings[:capacity]
 
             @consumers_requested += 1
           end
@@ -91,16 +91,16 @@ module RRR
         @worker ||= eval(code)
       end
 
-      def has_to_scale_up?
+      def scale_up?
         number_of_consumers < worker.processes[:min] ||
         (
-          worker.processes[:capacity]*number_of_consumers < @stats.average &&
+          worker.settings[:queue_size]*number_of_consumers < @stats.average &&
           number_of_consumers < worker.processes[:max]
         )
       end
 
-      def has_to_scale_down?
-        (number_of_consumers - 1) * worker.processes[:capacity] > @stats.average &&
+      def scale_down?
+        (number_of_consumers - 1) * worker.settings[:queue_size] > @stats.average &&
         number_of_consumers > worker.processes[:min]
       end
 
@@ -113,7 +113,7 @@ module RRR
           return worker.processes[:desirable] - number_of_consumers
         end
 
-        workers_needed = @stats.average/worker.processes[:capacity] - number_of_consumers
+        workers_needed = @stats.average/worker.settings[:queue_size] - number_of_consumers
         if number_of_consumers + workers_needed > worker.processes[:max]
           return worker.processes[:max] - number_of_consumers
         end
