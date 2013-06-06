@@ -54,7 +54,7 @@ module RRR
             count = number_of_consumers + number_of_processes_to_scale_up - @consumers_requested
 
             scale :up, count if count > 0
-          elsif cale_down?
+          elsif scale_down?
             scale :down      if number_of_consumers <= @consumers_requested
           end
         end
