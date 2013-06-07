@@ -23,7 +23,8 @@ module RRR
           worker_dir = "#{RRR.config[:root]}/tmp/workers/#{RRR.config[:env]}/#{worker.name}"
           FileUtils.mkdir_p(worker_dir) unless File.exists?(worker_dir)
 
-          create_gemfile worker, "#{worker_dir}/Gemfile"
+          create_gemfile  worker, "#{worker_dir}/Gemfile"
+          create_rakefile "#{worker_dir}/Rakefile"
 
           File.open("#{worker_dir}/worker.rb", 'w') { |f| f.write(worker_code) }
           File.delete("#{worker_dir}/Gemfile.lock") if File.exists?("#{worker_dir}/Gemfile.lock")
@@ -99,6 +100,22 @@ module RRR
         end
 
         File.open(path, 'w') { |f| f.write(gemfile) }
+      end
+
+      def create_rakefile path
+        File.open(path, 'w') do |f|
+          f.write <<-EOF
+#!/usr/bin/env rake
+
+$:.push File.expand_path("../", __FILE__)
+
+require 'rake'
+
+require "run_rabbit_run/tasks"
+          EOF
+        end
+
+
       end
 
     end
