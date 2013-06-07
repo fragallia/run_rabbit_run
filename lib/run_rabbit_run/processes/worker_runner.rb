@@ -31,20 +31,20 @@ module RRR
           output = ""
           # try to install from local gems
           Bundler.with_clean_env do
-            output = `cd #{worker_dir}; bundle install --local --gemfile #{worker_dir}/Gemfile`
+            output = `cd #{worker_dir}; RACK_ENV=#{RRR.config[:env]} bundle install --local --gemfile #{worker_dir}/Gemfile`
           end
 
           unless File.exists?("#{worker_dir}/Gemfile.lock")
             # if bundle install --local failed run the remote one
             Bundler.with_clean_env do
-              output = `cd #{worker_dir}; bundle install --gemfile #{worker_dir}/Gemfile`
+              output = `cd #{worker_dir}; RACK_ENV=#{RRR.config[:env]} bundle install --gemfile #{worker_dir}/Gemfile`
             end
           end
 
           raise "bundle install failed: #{output}" unless File.exists?("#{worker_dir}/Gemfile.lock")
 
           Bundler.with_clean_env do
-            output = `cd #{RRR.config[:root]}; BUNDLE_GEMFILE=#{worker_dir}/Gemfile bundle exec rake rrr:worker:run[#{master_name},#{worker_id},#{worker_dir}/worker.rb]`
+            output = `cd #{RRR.config[:root]}; BUNDLE_GEMFILE=#{worker_dir}/Gemfile RACK_ENV=#{RRR.config[:env]} bundle exec rake rrr:worker:run[#{master_name},#{worker_id},#{worker_dir}/worker.rb]`
           end
 
         rescue => e
