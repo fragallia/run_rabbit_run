@@ -9,7 +9,8 @@ module RRR
       extend self
 
       @gemfile_default_gems = {
-        run_rabbit_run: []
+        run_rabbit_run: [ git: 'git://github.com/fragallia/run_rabbit_run.git' ],
+        cia:            [ "0.1.1", git: 'git://github.com/stevecreedon/cia.git' ]
       }
 
       def build master_name, worker_id, worker_code

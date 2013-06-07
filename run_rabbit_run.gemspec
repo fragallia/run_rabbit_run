@@ -21,6 +21,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency "rake"
   gem.add_dependency "amqp"
   gem.add_dependency "daemons"
+  gem.add_dependency 'cia', "0.1.1", git: 'git://github.com/stevecreedon/cia.git'
 
   gem.add_development_dependency 'pry'
   gem.add_development_dependency 'rspec'
