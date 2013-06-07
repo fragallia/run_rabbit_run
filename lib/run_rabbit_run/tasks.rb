@@ -26,7 +26,7 @@ namespace :rrr do
   desc 'Starts master and system workers'
   task boot: [ :config ] do | t, args |
     Rake::Task["rrr:start"].execute
-    Rake::Task["rrr:worker:start"].execute(Rake::TaskArguments.new([:path], [ 'lib/workers' ]))
+    Rake::Task["rrr:worker:start"].execute(Rake::TaskArguments.new([:path], [ File.expand_path('../../workers', __FILE__) ]))
   end
 
   desc 'Stops master, resets rabbitmq and boots app'
